@@ -254,8 +254,15 @@ def fetch_items():
             req = urllib.request.Request(url, headers={"User-Agent": "NostalgicSoftware-Updater/1.0"})
             with urllib.request.urlopen(req, timeout=30) as r:
                 data = json.loads(r.read().decode())
+        except urllib.error.HTTPError as e:
+            body = e.read().decode("utf-8", errors="replace")
+            print(f"  ERROR fetching page {page}: HTTP {e.code} {e.reason}")
+            print(f"  URL: {url[:200]}")
+            print(f"  Response body: {body[:500]}")
+            break
         except Exception as e:
             print(f"  ERROR fetching page {page}: {e}")
+            print(f"  URL: {url[:200]}")
             break
 
         resp = data.get("findItemsBySellerResponse", [{}])[0]
