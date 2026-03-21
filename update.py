@@ -235,12 +235,14 @@ def fetch_items():
 
     while True:
         params = urllib.parse.urlencode({
-            "OPERATION-NAME":        "findItemsIneBayStores",
+            "OPERATION-NAME":        "findItemsByseller",
             "SERVICE-VERSION":       "1.13.0",
             "SECURITY-APPNAME":      EBAY_APP_ID,
             "RESPONSE-DATA-FORMAT":  "JSON",
             "REST-PAYLOAD":          "",
-            "storeName":             EBAY_STORE,
+            "sellerID":              EBAY_STORE,
+            "itemFilter(0).name":    "ListingType",
+            "itemFilter(0).value":   "FixedPrice",
             "paginationInput.entriesPerPage": PAGE_SIZE,
             "paginationInput.pageNumber":     page,
             "outputSelector(0)":     "PictureURLLarge",
@@ -256,7 +258,7 @@ def fetch_items():
             print(f"  ERROR fetching page {page}: {e}")
             break
 
-        resp = data.get("findItemsIneBayStoresResponse", [{}])[0]
+        resp = data.get("findItemsBySellerResponse", [{}])[0]
         ack  = resp.get("ack", [""])[0]
         if ack != "Success":
             print(f"  eBay API error: {resp.get('errorMessage','unknown')}")
