@@ -708,25 +708,24 @@ def main():
 
     # 3. Diff
     new_ids     = live_ids - set(existing.keys())
-    refresh_ids = live_ids & existing_active          # still live, refresh
     sold_ids    = existing_active - live_ids          # was active, now gone
 
     print(f"  Live in feed:      {len(live_ids)}")
     print(f"  Existing pages:    {len(existing)}")
     print(f"  New listings:      {len(new_ids)}")
-    print(f"  Refreshing:        {len(refresh_ids)}")
+    print(f"  Rebuilding all:    {len(live_ids)} (always regenerate with current CSS)")
     print(f"  Sold/gone:         {len(sold_ids)}")
     print(f"  Already tombstone: {len(existing_tombstone)}\n")
 
-    # 4. Write new + refreshed active pages
+    # 4. Always rebuild ALL active pages — ensures current CSS/template on every run
     wrote = 0
-    for item_id in new_ids | refresh_ids:
+    for item_id in live_ids:
         item = live_by_id[item_id]
         html = build_active_page(item, live_items)
         path = filename(item_id)
         with open(path, "w", encoding="utf-8") as f:
             f.write(html)
-        tag = "NEW" if item_id in new_ids else "REFRESH"
+        tag = "NEW" if item_id in new_ids else "REBUILD"
         print(f"  [{tag}] {path}")
         wrote += 1
 
