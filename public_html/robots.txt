@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+Allow: /items/
+Disallow: /admin/
+Disallow: /cgi-bin/
+Disallow: /temp/
+Disallow: /test/
+Disallow: /backup/
+Disallow: /private/
+
+Sitemap: https://www.nostalgicsoftware.com/sitemap.xml
