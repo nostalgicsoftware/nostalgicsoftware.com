@@ -37,7 +37,6 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           projectName: nostalgicsoftware
           directory: .
-          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Summary
         run: |
@@ -45,5 +44,3 @@ jobs:
           echo "**Date:** $(date -u '+%Y-%m-%d %H:%M UTC')" >> $GITHUB_STEP_SUMMARY
           echo "**Item pages:** $(ls items/*.html 2>/dev/null | wc -l)" >> $GITHUB_STEP_SUMMARY
           echo "**Sitemap URLs:** $(grep -c '<loc>' sitemap.xml 2>/dev/null || echo 0)" >> $GITHUB_STEP_SUMMARY
-
-
