@@ -1,29 +1,31 @@
 #!/usr/bin/env python3
 """
-update.py — NostalgicSoftware.com Item Page Generator
-======================================================
-Run this script whenever you want to update the site (your "Update" command).
+update.py — NostalgicSoftware.com Site Generator
+=================================================
+Fetches live listings directly from eBay and generates the full static site.
+Run manually or via GitHub Actions (runs daily at 6 AM ET automatically).
 
 What it does:
-  1. Fetches the Auctiva RSS feed (85 items)
-  2. Parses each item: title, eBay ID, image, price, category
-  3. Compares against existing /items/ pages
-     - New item  → generate fresh item page
-     - Still live → regenerate (refresh price/image)
-     - Gone/sold  → convert to "Looks like you missed this one" tombstone page
-       with 4 suggestions from similar category
-  4. Writes all pages to /items/item-EBAYID.html
-  5. Regenerates sitemap.xml with all active + tombstone URLs
-  6. Prints a change report
+  1. Fetches all active listings from eBay store via Finding API
+  2. Fetches full-res images via eBay Shopping API (s-l1600)
+  3. Fetches full HTML descriptions via eBay Shopping API
+  4. Diffs against existing /items/ pages:
+     - New listing    → generate fresh item page
+     - Still live     → regenerate (refresh price/image/description)
+     - Sold/gone      → convert to tombstone page with 4 suggestions
+  5. Regenerates sitemap.xml and robots.txt
+  6. Prints a change summary
 
 Usage:
   python3 update.py
 
-Output folder structure (put this next to index.html on your server):
-  /items/item-223467169797.html
-  /items/item-323960797458.html
-  ...
-  sitemap.xml   (regenerated)
+Requirements:
+  pip install opencv-python-headless
+
+Output:
+  index.html, sitemap.xml, robots.txt
+  items/[3-word-slug]-[ebayID].html  (one page per listing)
+  nostalgicsoftware-hero-thumb.jpg   (extracted from hero video)
 """
 
 import os, re, sys, json, hashlib, textwrap, urllib.request, xml.etree.ElementTree as ET
