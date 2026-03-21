@@ -1,0 +1,57 @@
+name: Update NostalgicSoftware.com
+
+on:
+  # ── Manual trigger — click "Run workflow" in GitHub Actions tab ──
+  workflow_dispatch:
+
+  # ── Automatic schedule — runs every day at 6 AM ET (11:00 UTC) ──
+  schedule:
+    - cron: '0 11 * * *'
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+
+      # ── 1. Check out the repo ──
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── 2. Set up Python ──
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      # ── 3. Install dependencies ──
+      - name: Install dependencies
+        run: |
+          pip install opencv-python-headless
+
+      # ── 4. Run the site generator ──
+      - name: Generate site
+        env:
+          EBAY_APP_ID: ${{ secrets.EBAY_APP_ID }}
+        run: |
+          python update.py
+
+      # ── 5. Deploy to Cloudflare Pages ──
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/pages-action@v1
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          projectName: nostalgicsoftware
+          directory: .
+          # Exclude files that shouldn't be deployed
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+
+      # ── 6. Report what changed ──
+      - name: Summary
+        run: |
+          echo "## Site Update Complete" >> $GITHUB_STEP_SUMMARY
+          echo "**Date:** $(date -u '+%Y-%m-%d %H:%M UTC')" >> $GITHUB_STEP_SUMMARY
+          echo "**Item pages:** $(ls items/*.html 2>/dev/null | wc -l)" >> $GITHUB_STEP_SUMMARY
+          echo "**Sitemap URLs:** $(grep -c '<loc>' sitemap.xml 2>/dev/null || echo 0)" >> $GITHUB_STEP_SUMMARY
