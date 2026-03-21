@@ -235,7 +235,7 @@ def fetch_items():
 
     while True:
         params = urllib.parse.urlencode({
-            "OPERATION-NAME":        "findItemsByseller",
+            "OPERATION-NAME":        "findItemsBySeller",
             "SERVICE-VERSION":       "1.13.0",
             "SECURITY-APPNAME":      EBAY_APP_ID,
             "RESPONSE-DATA-FORMAT":  "JSON",
