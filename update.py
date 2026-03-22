@@ -44,7 +44,8 @@ TODAY         = date.today().isoformat()
 
 # eBay API credentials — stored as GitHub Secrets, fallback to hardcoded for local dev
 EBAY_APP_ID   = os.environ.get("EBAY_APP_ID",  "GrahamRo-Nostalgi-PRD-4bf1cc952-2f5fcafe")
-EBAY_CERT_ID  = os.environ.get("EBAY_CERT_ID", "")  # PRD-... from developer.ebay.com
+EBAY_CERT_ID  = os.environ.get("EBAY_CERT_ID", "")   # PRD-... from developer.ebay.com
+EBAY_USER_TOKEN = os.environ.get("EBAY_USER_TOKEN", "")  # Auth'n'Auth token — expires Sep 13 2027
 
 # ─────────────────────────────────────────────────────────────
 #  KEYWORD MAP — per-category extra SEO terms
