@@ -211,52 +211,56 @@ def smart_keywords(title, category):
     return ", ".join(parts)
 
 # ─────────────────────────────────────────────────────────────
-#  SLUG GENERATION — 3-word keyword slug + eBay ID
+#  SLUG REGISTRY — permanent slugs, never change after first set
+#  Edit slugs.json in the repo to change a specific slug.
+#  The script will rename the file and redirect automatically.
 # ─────────────────────────────────────────────────────────────
-SLUG_OVERRIDES = {
-    "224050023801":"party-garlands-decoration","324215180360":"usb-hdmi-adapter",
-    "326414379465":"thermal-paper-rolls","226274217296":"harry-potter-screener",
-    "326220664776":"minority-report-screener","227243722967":"valve-stem-extender",
-    "327025989867":"kcup-holder-replacement","326482266253":"scooter-adapter-power",
-    "226762729338":"bike-scooter-bell",
-    "323965900818":"tampa-lightning-magnets",
-    "324700322405":"tampa-lightning-budlight-2020-box",
-    "324935406132":"tampa-lightning-budlight-2021-3pack",
-    "224736662928":"tampa-lightning-budlight-2021-boxed",
-    "224736662929":"tampa-lightning-budlight-2020-3pack",
-    "224736662932":"tampa-lightning-budlight-2020-boxed",
-    "224736662933":"tampa-lightning-budlight-both-years",
-    "224067231458":"kids-sprinkler-mat-58x64",
-    "224067233561":"kids-sprinkler-mat-62inch-round",
-    "324218651100":"kids-sprinkler-mat-62inch",
-    "324226524448":"kids-splash-mat-62inch-round",
-    "226558709866":"disney-mickey-muscle-shirt",
-    "226617997854":"disney-mickey-rain-poncho",
-    "326914495676":"coca-cola-vanilla-bottle",
-    "326917045940":"coca-cola-vanilla-cans",
-    "326925761912":"coca-cola-vanilla-zero-sugar",
-}
+SLUG_REGISTRY_PATH = "slugs.json"
 
 SLUG_STOP = {"a","an","the","and","or","for","of","in","on","at","to","with","by","from",
              "new","free","s/h","w/","size","color","set","lot","pack","box","per",
              "2019","2020","2021","2022","2023","2024","2025","2026"}
 
-def make_slug(item_id, title):
-    """Generate unique 3-word-keyword + ID slug for item page filename."""
-    if item_id in SLUG_OVERRIDES:
-        return f"{SLUG_OVERRIDES[item_id]}-{item_id}"
+def load_slug_registry():
+    """Load existing slug registry from slugs.json."""
+    if os.path.exists(SLUG_REGISTRY_PATH):
+        with open(SLUG_REGISTRY_PATH, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return {}
+
+def save_slug_registry(registry):
+    """Save slug registry to slugs.json."""
+    with open(SLUG_REGISTRY_PATH, "w", encoding="utf-8") as f:
+        json.dump(registry, f, indent=2, sort_keys=True)
+
+def auto_slug(item_id, title):
+    """Generate a slug from title words — only used for NEW items not in registry."""
     words = re.sub(r"[^a-z0-9\s]", " ", title.lower()).split()
     words = [w for w in words if w not in SLUG_STOP and len(w) > 2]
     return "-".join(words[:3]) + f"-{item_id}"
 
+# Global registry — loaded once at startup
+SLUG_REGISTRY = load_slug_registry()
+
+def get_slug(item_id, title=""):
+    """
+    Get slug for item. Uses registry if exists, generates new one otherwise.
+    New slugs are saved to registry immediately so they never change.
+    """
+    if item_id in SLUG_REGISTRY:
+        return SLUG_REGISTRY[item_id] + f"-{item_id}"
+    # New item — generate and permanently register
+    new_slug_base = auto_slug(item_id, title).replace(f"-{item_id}", "")
+    SLUG_REGISTRY[item_id] = new_slug_base
+    save_slug_registry(SLUG_REGISTRY)
+    print(f"  [registry] New slug registered: {new_slug_base}-{item_id}")
+    return f"{new_slug_base}-{item_id}"
+
 def slug(item_id, title=""):
-    """Wrapper — uses make_slug if title provided, else falls back to item-ID."""
-    if title:
-        return make_slug(item_id, title)
-    return f"item-{item_id}"
+    return get_slug(item_id, title)
 
 def filename(item_id, title=""):
-    return os.path.join(OUTPUT_DIR, f"{slug(item_id, title)}.html")
+    return os.path.join(OUTPUT_DIR, f"{get_slug(item_id, title)}.html")
 
 # ─────────────────────────────────────────────────────────────
 #  FETCH LISTINGS — eBay Trading API GetSellerList (XML)
@@ -390,7 +394,7 @@ def fetch_items():
                 items.append({
                     "id":        item_id,
                     "title":     title,
-                    "slug":      make_slug(item_id, title),
+                    "slug":      get_slug(item_id, title),
                     "ebay_url":  f"https://www.ebay.com/itm/{item_id}",
                     "img":       img,
                     "price":     price,
