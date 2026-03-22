@@ -29,6 +29,7 @@ jobs:
       - name: Generate site
         env:
           EBAY_APP_ID: ${{ secrets.EBAY_APP_ID }}
+          EBAY_CERT_ID: ${{ secrets.EBAY_CERT_ID }}
         run: |
           python update.py
 
