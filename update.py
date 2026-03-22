@@ -268,6 +268,7 @@ def fetch_items():
 
     while True:
         params = urllib.parse.urlencode({
+            "q":       "*",
             "filter":  f"sellers:{{{EBAY_STORE}}}",
             "limit":   PAGE_SIZE,
             "offset":  offset,
