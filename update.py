@@ -28,7 +28,7 @@ Output:
   nostalgicsoftware-hero-thumb.jpg   (extracted from hero video)
 """
 
-import os, re, sys, json, hashlib, textwrap, urllib.request, xml.etree.ElementTree as ET
+import os, re, sys, json, hashlib, textwrap, urllib.request, xml.etree.ElementTree as ET, time
 from datetime import date
 from html import escape
 
@@ -87,8 +87,8 @@ def fetch_ebay_descriptions(item_ids):
     result = {}
     ids = list(item_ids)
 
-    for i in range(0, len(ids), 20):
-        batch = ids[i:i+20]
+    for i in range(0, len(ids), 10):
+        batch = ids[i:i+10]
         id_str = ",".join(batch)
         url = (
             "https://open.api.ebay.com/shopping?"
@@ -113,7 +113,8 @@ def fetch_ebay_descriptions(item_ids):
                 if iid and desc:
                     result[iid] = desc
         except Exception as e:
-            print(f"  [desc] Batch {i//20+1} failed: {e}")
+            print(f"  [desc] Batch {i//10+1} failed: {e}")
+        time.sleep(1)  # 1 second between batches to avoid rate limiting
 
     print(f"  [desc] Got descriptions for {len(result)}/{len(ids)} items")
     return result
@@ -132,7 +133,7 @@ def fetch_ebay_images(item_ids):
 
     import urllib.parse
     result = {}
-    batch_size = 20
+    batch_size = 10
     ids = list(item_ids)
 
     for i in range(0, len(ids), batch_size):
@@ -162,12 +163,12 @@ def fetch_ebay_images(item_ids):
                 if isinstance(pics, str):
                     pics = [pics]
                 if pics:
-                    # Prefer s-l1600 (full res), fall back to whatever eBay returns
                     url_hi = pics[0].replace("s-l225","s-l1600").replace("s-l500","s-l1600")
                     result[iid] = url_hi
             print(f"  [images] Batch {i//batch_size+1}: fetched {len(items)} items from eBay API")
         except Exception as e:
             print(f"  [images] Batch {i//batch_size+1} failed: {e} — will use Auctiva fallback")
+        time.sleep(2)  # 2 seconds between batches to avoid rate limiting
 
     return result
 
