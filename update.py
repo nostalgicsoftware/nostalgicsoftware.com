@@ -148,12 +148,12 @@ def save_desc_cache(cache):
 
 def fetch_ebay_descriptions(item_ids):
     """
-    Fetches descriptions via Shopping API GetMultipleItems.
+    Fetches item descriptions using Trading API GetItem (XML).
     Uses desc_cache.json — only fetches items not already cached.
-    Each description is fetched ONCE ever, then reused from cache.
-    Batches of 5 with 2s delay to avoid rate limits.
+    Each description is fetched once and cached permanently.
+    Requires EBAY_USER_TOKEN.
     """
-    import urllib.parse, base64
+    import xml.etree.ElementTree as ET
 
     cache  = load_desc_cache()
     ids    = list(item_ids)
@@ -163,60 +163,50 @@ def fetch_ebay_descriptions(item_ids):
         print(f"  [desc] All {len(ids)} descriptions loaded from cache")
         return {iid: cache[iid] for iid in ids if iid in cache}
 
-    print(f"  [desc] Fetching {len(needed)} new descriptions (cached: {len(ids)-len(needed)})")
+    if not EBAY_USER_TOKEN:
+        print(f"  [desc] No EBAY_USER_TOKEN — descriptions skipped")
+        return {iid: cache[iid] for iid in ids if iid in cache}
 
-    # Get OAuth app token for Shopping API authentication
-    oauth_token = ""
-    try:
-        creds = base64.b64encode(f"{EBAY_APP_ID}:{EBAY_CERT_ID}".encode()).decode()
-        token_req = urllib.request.Request(
-            "https://api.ebay.com/identity/v1/oauth2/token",
-            data=b"grant_type=client_credentials&scope=https%3A%2F%2Fapi.ebay.com%2Foauth%2Fapi_scope",
-            headers={"Content-Type": "application/x-www-form-urlencoded",
-                     "Authorization": f"Basic {creds}"}
-        )
-        with urllib.request.urlopen(token_req, timeout=15) as r:
-            oauth_token = json.loads(r.read().decode()).get("access_token","")
-        print(f"  [desc] OAuth token obtained")
-    except Exception as e:
-        print(f"  [desc] OAuth token failed: {e} — descriptions skipped")
-        return {}
+    print(f"  [desc] Fetching {len(needed)} descriptions via Trading API GetItem (cached: {len(ids)-len(needed)})")
+    ns = {"e": "urn:ebay:apis:eBLBaseComponents"}
 
-    for i in range(0, len(needed), 5):
-        batch  = needed[i:i+5]
-        id_str = ",".join(batch)
-        url = (
-            "https://open.api.ebay.com/shopping?"
-            f"callname=GetMultipleItems"
-            f"&responseencoding=JSON"
-            f"&appid={urllib.parse.quote(EBAY_APP_ID)}"
-            f"&siteid=0"
-            f"&version=967"
-            f"&ItemID={id_str}"
-            f"&IncludeSelector=Description"
-        )
+    for idx, iid in enumerate(needed):
+        xml_body = f"""<?xml version="1.0" encoding="utf-8"?>
+<GetItemRequest xmlns="urn:ebay:apis:eBLBaseComponents">
+  <RequesterCredentials>
+    <eBayAuthToken>{EBAY_USER_TOKEN}</eBayAuthToken>
+  </RequesterCredentials>
+  <ItemID>{iid}</ItemID>
+  <DetailLevel>ItemReturnDescription</DetailLevel>
+</GetItemRequest>"""
         try:
-            req = urllib.request.Request(url, headers={
-                "User-Agent":          "NostalgicSoftware/1.0",
-                "X-EBAY-API-IAF-TOKEN": oauth_token,
-            })
+            req = urllib.request.Request(
+                "https://api.ebay.com/ws/api.dll",
+                data=xml_body.encode("utf-8"),
+                headers={
+                    "X-EBAY-API-SITEID":              "0",
+                    "X-EBAY-API-COMPATIBILITY-LEVEL": "1113",
+                    "X-EBAY-API-CALL-NAME":           "GetItem",
+                    "X-EBAY-API-APP-NAME":            EBAY_APP_ID,
+                    "X-EBAY-API-CERT-NAME":           EBAY_CERT_ID,
+                    "Content-Type":                   "text/xml;charset=utf-8",
+                }
+            )
             with urllib.request.urlopen(req, timeout=15) as r:
                 raw = r.read()
-            data = json.loads(raw.decode())
-            items_data = data.get("Item") or []
-            if not isinstance(items_data, list):
-                items_data = [items_data]
-            for itm in items_data:
-                iid  = str(itm.get("ItemID",""))
-                desc = itm.get("Description","") or ""
-                if iid and desc:
-                    cache[iid] = desc
-        except urllib.error.HTTPError as e:
-            body = e.read().decode("utf-8", errors="replace")
-            print(f"  [desc] Batch {i//5+1} HTTP {e.code}: {body[:200]}")
+            root = ET.fromstring(raw)
+            ack  = root.findtext("e:Ack", namespaces=ns) or root.findtext("Ack") or ""
+            if ack in ("Success", "Warning"):
+                item_el = root.find("e:Item", namespaces=ns) or root.find("Item")
+                if item_el is not None:
+                    desc_el = item_el.find("e:Description", namespaces=ns) or item_el.find("Description")
+                    if desc_el is not None and desc_el.text:
+                        cache[iid] = desc_el.text
+            if (idx+1) % 10 == 0:
+                print(f"  [desc] {idx+1}/{len(needed)} fetched...")
         except Exception as e:
-            print(f"  [desc] Batch {i//5+1} failed: {e}")
-        time.sleep(1)
+            print(f"  [desc] Item {iid} failed: {e}")
+        time.sleep(0.5)
 
     save_desc_cache(cache)
     result = {iid: cache[iid] for iid in ids if iid in cache}
