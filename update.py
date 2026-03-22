@@ -35,17 +35,16 @@ from html import escape
 # ─────────────────────────────────────────────────────────────
 #  CONFIG  — edit these
 # ─────────────────────────────────────────────────────────────
-EBAY_STORE    = "nostalgic-software"    # your eBay store name
-EBAY_SITE_ID  = "0"                     # 0 = eBay US
+EBAY_STORE    = "nostalgic-software"    # your eBay seller ID
 SITE_BASE     = "https://www.nostalgicsoftware.com"
 GA_ID         = "G-BPE3G9Q26B"
 OUTPUT_DIR    = "items"          # relative to where you run the script
 SITEMAP_PATH  = "sitemap.xml"
 TODAY         = date.today().isoformat()
 
-# eBay Shopping API — free App ID from developer.ebay.com
-# Paste your Production App ID here (format: YourName-AppName-PRD-xxxxxxx-xxxxxxxx)
-EBAY_APP_ID   = os.environ.get("EBAY_APP_ID", "GrahamRo-Nostalgi-PRD-4bf1cc952-2f5fcafe")
+# eBay API credentials — stored as GitHub Secrets, fallback to hardcoded for local dev
+EBAY_APP_ID   = os.environ.get("EBAY_APP_ID",  "GrahamRo-Nostalgi-PRD-4bf1cc952-2f5fcafe")
+EBAY_CERT_ID  = os.environ.get("EBAY_CERT_ID", "")  # PRD-... from developer.ebay.com
 
 # ─────────────────────────────────────────────────────────────
 #  KEYWORD MAP — per-category extra SEO terms
@@ -217,106 +216,115 @@ def filename(item_id):
     return os.path.join(OUTPUT_DIR, f"{slug(item_id)}.html")
 
 # ─────────────────────────────────────────────────────────────
-#  FETCH LISTINGS DIRECT FROM EBAY FINDING API
+#  EBAY OAUTH TOKEN
+# ─────────────────────────────────────────────────────────────
+def get_ebay_token():
+    """
+    Client Credentials grant — mints a 2-hour Application access token.
+    No user login required. Uses EBAY_APP_ID + EBAY_CERT_ID.
+    """
+    import base64
+    credentials = base64.b64encode(f"{EBAY_APP_ID}:{EBAY_CERT_ID}".encode()).decode()
+    url  = "https://api.ebay.com/identity/v1/oauth2/token"
+    data = "grant_type=client_credentials&scope=https%3A%2F%2Fapi.ebay.com%2Foauth%2Fapi_scope"
+    req  = urllib.request.Request(
+        url,
+        data=data.encode(),
+        headers={
+            "Content-Type":  "application/x-www-form-urlencoded",
+            "Authorization": f"Basic {credentials}",
+        }
+    )
+    with urllib.request.urlopen(req, timeout=15) as r:
+        token_data = json.loads(r.read().decode())
+    token = token_data.get("access_token", "")
+    print(f"  OAuth token obtained (expires in {token_data.get('expires_in',0)}s)")
+    return token
+
+
+# ─────────────────────────────────────────────────────────────
+#  FETCH LISTINGS DIRECT FROM EBAY BROWSE API
 #  No Auctiva. No middleman. No skimmed commissions.
+#  No deprecated Finding API. Stable, eBay-supported long term.
 # ─────────────────────────────────────────────────────────────
 def fetch_items():
     """
-    Pulls all active listings from your eBay store using the
-    Finding API findItemsIneBayStores call. Paginates automatically
-    to retrieve every listing regardless of count.
-    Returns same item dict structure as before.
+    Fetches all active fixed-price listings for EBAY_STORE using the
+    eBay Browse API search endpoint with a sellers filter.
+    Paginates automatically. Returns list of item dicts.
     """
     import urllib.parse
-    PAGE_SIZE = 100
-    items     = []
-    page      = 1
 
-    print(f"  Fetching listings from eBay store: {EBAY_STORE}")
+    if not EBAY_CERT_ID:
+        print("  ERROR: EBAY_CERT_ID not set — cannot fetch listings")
+        return []
+
+    token     = get_ebay_token()
+    PAGE_SIZE = 200
+    offset    = 0
+    items     = []
+
+    print(f"  Fetching listings for seller: {EBAY_STORE}")
 
     while True:
         params = urllib.parse.urlencode({
-            "OPERATION-NAME":        "findItemsAdvanced",
-            "SERVICE-VERSION":       "1.13.0",
-            "SECURITY-APPNAME":      EBAY_APP_ID,
-            "RESPONSE-DATA-FORMAT":  "JSON",
-            "REST-PAYLOAD":          "",
-            "itemFilter(0).name":    "Seller",
-            "itemFilter(0).value":   EBAY_STORE,
-            "itemFilter(1).name":    "ListingType",
-            "itemFilter(1).value":   "FixedPrice",
-            "paginationInput.entriesPerPage": PAGE_SIZE,
-            "paginationInput.pageNumber":     page,
-            "outputSelector(0)":     "PictureURLLarge",
-            "outputSelector(1)":     "PictureURLSuperSize",
+            "filter":  f"sellers:{{{EBAY_STORE}}}",
+            "limit":   PAGE_SIZE,
+            "offset":  offset,
         })
-        url = f"https://svcs.ebay.com/services/search/FindingService/v1?{params}"
+        url = f"https://api.ebay.com/buy/browse/v1/item_summary/search?{params}"
 
         try:
-            req = urllib.request.Request(url, headers={"User-Agent": "NostalgicSoftware-Updater/1.0"})
+            req = urllib.request.Request(url, headers={
+                "Authorization":        f"Bearer {token}",
+                "X-EBAY-C-MARKETPLACE-ID": "EBAY_US",
+                "Content-Type":         "application/json",
+            })
             with urllib.request.urlopen(req, timeout=30) as r:
                 data = json.loads(r.read().decode())
         except urllib.error.HTTPError as e:
             body = e.read().decode("utf-8", errors="replace")
-            print(f"  ERROR fetching page {page}: HTTP {e.code} {e.reason}")
-            print(f"  URL: {url[:200]}")
-            print(f"  Response body: {body[:500]}")
+            print(f"  ERROR: HTTP {e.code} — {body[:300]}")
             break
         except Exception as e:
-            print(f"  ERROR fetching page {page}: {e}")
-            print(f"  URL: {url[:200]}")
+            print(f"  ERROR: {e}")
             break
 
-        resp = data.get("findItemsAdvancedResponse", [{}])[0]
-        ack  = resp.get("ack", [""])[0]
-        if ack != "Success":
-            print(f"  eBay API error: {resp.get('errorMessage','unknown')}")
-            break
-
-        listing_array = resp.get("searchResult", [{}])[0].get("item", [])
-        if not listing_array:
-            break
+        listing_array = data.get("itemSummaries", [])
+        total         = data.get("total", 0)
 
         for el in listing_array:
-            item_id  = el.get("itemId",  [""])[0]
-            title    = el.get("title",   [""])[0].strip()
-            ebay_url = el.get("viewItemURL", [""])[0]
-
-            # Price
-            selling  = el.get("sellingStatus", [{}])[0]
-            price    = float(selling.get("currentPrice", [{}])[0].get("__value__", "0") or "0")
-
-            # Best available image from Finding API
-            # (fetch_ebay_images will upgrade these to s-l1600 via Shopping API)
-            img = ""
-            for key in ("pictureURLSuperSize", "pictureURLLarge", "galleryURL"):
-                val = el.get(key, [""])[0]
-                if val and val.startswith("http"):
-                    img = val
-                    break
-
+            item_id  = el.get("legacyItemId", "")  # classic eBay item number
+            title    = el.get("title", "").strip()
+            price    = float(el.get("price", {}).get("value", "0") or "0")
+            img      = el.get("image", {}).get("imageUrl", "")
+            # Upgrade to highest res eBay image
+            if img:
+                img = re.sub(r's-l\d+', 's-l1600', img)
             free_ship = bool(re.search(r"free\s*s/?h|free\s*ship", title, re.I))
             category  = categorize(title)
 
-            items.append({
-                "id":        item_id,
-                "title":     title,
-                "ebay_url":  f"https://www.ebay.com/itm/{item_id}",
-                "img":       img,
-                "price":     price,
-                "free_ship": free_ship,
-                "category":  category,
-            })
+            if item_id and title:
+                items.append({
+                    "id":        item_id,
+                    "title":     title,
+                    "ebay_url":  f"https://www.ebay.com/itm/{item_id}",
+                    "img":       img,
+                    "price":     price,
+                    "free_ship": free_ship,
+                    "category":  category,
+                    "ebay_desc": "",  # filled in by fetch_ebay_descriptions
+                })
 
-        total_pages = int(resp.get("paginationOutput", [{}])[0].get("totalPages", ["1"])[0])
-        print(f"  Page {page}/{total_pages}: got {len(listing_array)} listings")
-        if page >= total_pages:
+        fetched_so_far = offset + len(listing_array)
+        print(f"  Fetched {fetched_so_far}/{total} listings")
+
+        if fetched_so_far >= total or not listing_array:
             break
-        page += 1
+        offset += PAGE_SIZE
 
-    print(f"  Total listings fetched from eBay: {len(items)}")
+    print(f"  Total listings fetched: {len(items)}")
     return items
-
 # ─────────────────────────────────────────────────────────────
 #  EXISTING PAGE INVENTORY
 # ─────────────────────────────────────────────────────────────
