@@ -216,21 +216,21 @@ def filename(item_id):
     return os.path.join(OUTPUT_DIR, f"{slug(item_id)}.html")
 
 # ─────────────────────────────────────────────────────────────
-#  FETCH LISTINGS
-#  Primary:  eBay Trading API GetSellerList (requires EBAY_USER_TOKEN)
-#  Fallback: eBay RSS feed (no auth, works immediately)
+#  FETCH LISTINGS — eBay Trading API GetSellerList (XML)
+#  Uses EBAY_USER_TOKEN (18-month Auth'n'Auth token)
+#  Token generated: March 22, 2026 — Expires: September 13, 2027
 # ─────────────────────────────────────────────────────────────
-EBAY_USER_TOKEN = os.environ.get("EBAY_USER_TOKEN", "")  # GitHub Secret — 18-month token
-
-
-def fetch_items_trading_api():
+def fetch_items():
     """
-    Trading API GetSellerList — returns all active listings for the seller.
-    Requires EBAY_USER_TOKEN set as GitHub Secret.
-    Token lasts 18 months. Generate at developer.ebay.com → User Tokens.
+    Calls Trading API GetSellerList via XML POST.
+    Returns all active fixed-price listings for EBAY_STORE.
     """
-    import urllib.parse
+    import xml.etree.ElementTree as ET
     from datetime import datetime, timezone, timedelta
+
+    if not EBAY_USER_TOKEN:
+        print("  ERROR: EBAY_USER_TOKEN not set — cannot fetch listings")
+        return []
 
     PAGE_SIZE = 200
     items     = []
@@ -242,178 +242,127 @@ def fetch_items_trading_api():
     print(f"  [Trading API] Fetching listings for: {EBAY_STORE}")
 
     while True:
-        params = urllib.parse.urlencode({
-            "callname":                  "GetSellerList",
-            "responseencoding":          "JSON",
-            "appid":                     EBAY_APP_ID,
-            "siteid":                    "0",
-            "version":                   "1113",
-            "UserID":                    EBAY_STORE,
-            "GranularityLevel":          "Fine",
-            "EndTimeFrom":               end_from,
-            "EndTimeTo":                 end_to,
-            "IncludeVariations":         "false",
-            "Pagination.EntriesPerPage": PAGE_SIZE,
-            "Pagination.PageNumber":     page,
-        })
-        url = f"https://api.ebay.com/ws/api.dll"
+        xml_body = f"""<?xml version="1.0" encoding="utf-8"?>
+<GetSellerListRequest xmlns="urn:ebay:apis:eBLBaseComponents">
+  <RequesterCredentials>
+    <eBayAuthToken>{EBAY_USER_TOKEN}</eBayAuthToken>
+  </RequesterCredentials>
+  <UserID>{EBAY_STORE}</UserID>
+  <GranularityLevel>Fine</GranularityLevel>
+  <EndTimeFrom>{end_from}</EndTimeFrom>
+  <EndTimeTo>{end_to}</EndTimeTo>
+  <Pagination>
+    <EntriesPerPage>{PAGE_SIZE}</EntriesPerPage>
+    <PageNumber>{page}</PageNumber>
+  </Pagination>
+  <DetailLevel>ReturnAll</DetailLevel>
+</GetSellerListRequest>"""
 
         try:
-            req = urllib.request.Request(url, data=params.encode(), headers={
-                "X-EBAY-API-SITEID":        "0",
-                "X-EBAY-API-COMPATIBILITY-LEVEL": "1113",
-                "X-EBAY-API-CALL-NAME":     "GetSellerList",
-                "X-EBAY-API-APP-NAME":      EBAY_APP_ID,
-                "X-EBAY-API-RESPONSE-ENCODING": "JSON",
-                "X-EBAY-API-IAF-TOKEN":     EBAY_USER_TOKEN,
-                "Content-Type":             "application/x-www-form-urlencoded",
-            })
+            req = urllib.request.Request(
+                "https://api.ebay.com/ws/api.dll",
+                data=xml_body.encode("utf-8"),
+                headers={
+                    "X-EBAY-API-SITEID":              "0",
+                    "X-EBAY-API-COMPATIBILITY-LEVEL": "1113",
+                    "X-EBAY-API-CALL-NAME":           "GetSellerList",
+                    "X-EBAY-API-APP-NAME":            EBAY_APP_ID,
+                    "X-EBAY-API-DEV-NAME":            "",
+                    "X-EBAY-API-CERT-NAME":           EBAY_CERT_ID,
+                    "Content-Type":                   "text/xml;charset=utf-8",
+                }
+            )
             with urllib.request.urlopen(req, timeout=30) as r:
-                data = json.loads(r.read().decode())
+                raw = r.read()
         except urllib.error.HTTPError as e:
             body = e.read().decode("utf-8", errors="replace")
-            print(f"  [Trading API] ERROR: HTTP {e.code} — {body[:400]}")
-            return None
+            print(f"  [Trading API] HTTP {e.code}: {body[:400]}")
+            return []
         except Exception as e:
             print(f"  [Trading API] ERROR: {e}")
-            return None
+            return []
 
-        ack = data.get("Ack", "")
+        # Parse XML response
+        try:
+            root = ET.fromstring(raw)
+        except ET.ParseError as e:
+            print(f"  [Trading API] XML parse error: {e}")
+            print(f"  [Trading API] Response: {raw[:300]}")
+            return []
+
+        ns = {"e": "urn:ebay:apis:eBLBaseComponents"}
+
+        ack = root.findtext("e:Ack", namespaces=ns) or root.findtext("Ack") or ""
         if ack not in ("Success", "Warning"):
-            print(f"  [Trading API] API error: {json.dumps(data.get('Errors', {}))[:300]}")
-            return None
+            errors = root.find("e:Errors", namespaces=ns) or root.find("Errors")
+            err_msg = errors.findtext("e:LongMessage", namespaces=ns) if errors else "unknown"
+            print(f"  [Trading API] API error ({ack}): {err_msg}")
+            return []
 
-        listing_array = data.get("ItemArray", {}).get("Item", [])
-        if not isinstance(listing_array, list):
-            listing_array = [listing_array] if listing_array else []
+        # Pagination
+        pagination = root.find("e:PaginationResult", namespaces=ns) or root.find("PaginationResult")
+        total_pages = int(pagination.findtext("e:TotalNumberOfPages", namespaces=ns) or pagination.findtext("TotalNumberOfPages") or 1) if pagination else 1
+        total_items = int(pagination.findtext("e:TotalNumberOfEntries", namespaces=ns) or pagination.findtext("TotalNumberOfEntries") or 0) if pagination else 0
 
-        total_pages = int(data.get("PaginationResult", {}).get("TotalNumberOfPages", 1))
-        total_items = int(data.get("PaginationResult", {}).get("TotalNumberOfEntries", 0))
+        item_array = root.find("e:ItemArray", namespaces=ns) or root.find("ItemArray")
+        listing_array = item_array.findall("e:Item", namespaces=ns) if item_array else []
+        if not listing_array:
+            listing_array = item_array.findall("Item") if item_array else []
 
         for el in listing_array:
-            listing_type = el.get("ListingType", "")
+            def txt(tag):
+                v = el.findtext(f"e:{tag}", namespaces=ns)
+                return v if v is not None else (el.findtext(tag) or "")
+
+            listing_type = txt("ListingType")
             if listing_type not in ("FixedPriceItem", "StoresFixedPrice"):
                 continue
-            item_id = str(el.get("ItemID", ""))
-            title   = (el.get("Title", "") or "").strip()
-            price   = float((el.get("SellingStatus", {}).get("CurrentPrice", {}) or {}).get("#text", "0") or "0")
-            pics    = el.get("PictureDetails", {}).get("PictureURL", [])
-            if isinstance(pics, str): pics = [pics]
-            img = re.sub(r"s-l\d+", "s-l1600", pics[0]) if pics else ""
+
+            item_id = txt("ItemID").strip()
+            title   = txt("Title").strip()
+
+            # Price
+            selling = el.find("e:SellingStatus", namespaces=ns) or el.find("SellingStatus")
+            price   = 0.0
+            if selling is not None:
+                cp = selling.find("e:CurrentPrice", namespaces=ns) or selling.find("CurrentPrice")
+                if cp is not None:
+                    price = float(cp.text or "0")
+
+            # Images
+            pic_details = el.find("e:PictureDetails", namespaces=ns) or el.find("PictureDetails")
+            img = ""
+            if pic_details is not None:
+                pic_urls = pic_details.findall("e:PictureURL", namespaces=ns)
+                if not pic_urls:
+                    pic_urls = pic_details.findall("PictureURL")
+                if pic_urls:
+                    img = pic_urls[0].text or ""
+                    if img:
+                        img = re.sub(r"s-l\d+", "s-l1600", img)
+
             free_ship = bool(re.search(r"free\s*s/?h|free\s*ship", title, re.I))
+
             if item_id and title:
                 items.append({
-                    "id": item_id, "title": title,
-                    "ebay_url": f"https://www.ebay.com/itm/{item_id}",
-                    "img": img, "price": price,
-                    "free_ship": free_ship, "category": categorize(title), "ebay_desc": "",
+                    "id":        item_id,
+                    "title":     title,
+                    "ebay_url":  f"https://www.ebay.com/itm/{item_id}",
+                    "img":       img,
+                    "price":     price,
+                    "free_ship": free_ship,
+                    "category":  categorize(title),
+                    "ebay_desc": "",
                 })
 
         print(f"  [Trading API] Page {page}/{total_pages}: {len(listing_array)} listings ({total_items} total)")
-        if page >= total_pages: break
+        if page >= total_pages:
+            break
         page += 1
         time.sleep(0.5)
 
     print(f"  [Trading API] Total fetched: {len(items)}")
     return items
-
-
-def fetch_items_rss():
-    """
-    Fallback: eBay RSS feed for seller listings.
-    Tries multiple RSS URL formats with browser-like headers.
-    """
-    import xml.etree.ElementTree as ET
-
-    # Multiple URL formats to try
-    RSS_URLS = [
-        f"https://www.ebay.com/sch/i.html?_ssn={EBAY_STORE}&LH_BIN=1&_rss=1&_ipg=200",
-        f"https://www.ebay.com/sch/i.html?_nkw=&_ssn={EBAY_STORE}&_sop=10&LH_BIN=1&_rss=1",
-        f"https://www.ebay.com/usr/{EBAY_STORE}?_rss=1",
-    ]
-
-    HEADERS = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Accept": "application/rss+xml, application/xml, text/xml, */*",
-        "Accept-Language": "en-US,en;q=0.9",
-    }
-
-    raw = None
-    for rss_url in RSS_URLS:
-        print(f"  [RSS] Trying: {rss_url}")
-        try:
-            req = urllib.request.Request(rss_url, headers=HEADERS)
-            with urllib.request.urlopen(req, timeout=30) as r:
-                raw = r.read()
-            # Check it looks like XML not HTML
-            if raw.strip().startswith(b"<") and b"<html" not in raw[:200].lower():
-                print(f"  [RSS] Got XML response ({len(raw)} bytes)")
-                break
-            else:
-                print(f"  [RSS] Got HTML response (bot block) — trying next URL")
-                raw = None
-        except Exception as e:
-            print(f"  [RSS] ERROR: {e} — trying next URL")
-            raw = None
-
-    if not raw:
-        print("  [RSS] All URLs failed or returned HTML — no listings fetched")
-        return []
-
-    try:
-        root = ET.fromstring(raw)
-    except ET.ParseError as e:
-        print(f"  [RSS] XML parse error: {e}")
-        print(f"  [RSS] First 300 bytes: {raw[:300]}")
-        return []
-
-    items = []
-    for el in root.findall(".//item"):
-        title = (el.findtext("title") or "").strip()
-        link  = (el.findtext("link")  or "").strip()
-        desc  = (el.findtext("description") or "")
-
-        id_m = re.search(r"/(\d{10,})", link)
-        if not id_m: continue
-        item_id = id_m.group(1)
-
-        price_m = re.search(r"\$([0-9]+\.[0-9]{2})", desc)
-        price   = float(price_m.group(1)) if price_m else 0.0
-
-        img_m = re.search(r'src="(https?://[^"]+\.jpg[^"]*)"', desc, re.I)
-        img   = img_m.group(1) if img_m else ""
-        if img:
-            img = re.sub(r"s-l\d+", "s-l1600", img)
-
-        free_ship = bool(re.search(r"free\s*s/?h|free\s*ship", title, re.I))
-
-        if item_id and title:
-            items.append({
-                "id": item_id, "title": title,
-                "ebay_url": f"https://www.ebay.com/itm/{item_id}",
-                "img": img, "price": price,
-                "free_ship": free_ship, "category": categorize(title), "ebay_desc": "",
-            })
-
-    print(f"  [RSS] Fetched {len(items)} listings")
-    return items
-
-
-def fetch_items():
-    """
-    Try Trading API first (best data, requires EBAY_USER_TOKEN).
-    Fall back to RSS if token not set or Trading API fails.
-    """
-    if EBAY_USER_TOKEN:
-        print("  EBAY_USER_TOKEN found — trying Trading API...")
-        result = fetch_items_trading_api()
-        if result is not None:
-            return result
-        print("  Trading API failed — falling back to RSS")
-    else:
-        print("  No EBAY_USER_TOKEN set — using RSS fallback")
-
-    return fetch_items_rss()
 # ─────────────────────────────────────────────────────────────
 #  EXISTING PAGE INVENTORY
 # ─────────────────────────────────────────────────────────────
