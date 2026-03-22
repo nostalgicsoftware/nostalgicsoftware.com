@@ -388,6 +388,9 @@ def fetch_items():
                     if img:
                         img = re.sub(r"s-l\d+", "s-l1600", img)
 
+            # Description — Trading API returns full HTML description with GranularityLevel=Fine
+            desc = txt("Description") or ""
+
             free_ship = bool(re.search(r"free\s*s/?h|free\s*ship", title, re.I))
 
             if item_id and title:
@@ -400,7 +403,7 @@ def fetch_items():
                     "price":     price,
                     "free_ship": free_ship,
                     "category":  categorize(title),
-                    "ebay_desc": "",
+                    "ebay_desc": desc,
                 })
 
         print(f"  [Trading API] Page {page}/{total_pages}: {len(listing_array)} listings ({total_items} total)")
@@ -792,18 +795,18 @@ def main():
     live_ids    = {i["id"] for i in live_items}
     live_by_id  = {i["id"]: i for i in live_items}
 
-    # 1b. Fetch full-res images + descriptions from eBay Shopping API
-    print("  Fetching high-res images from eBay API...")
-    ebay_images = fetch_ebay_images(live_ids)
-    print(f"  Got eBay images for {len(ebay_images)}/{len(live_ids)} items")
-    print("  Fetching eBay descriptions...")
-    ebay_descs  = fetch_ebay_descriptions(live_ids)
+    # 1b. Images and descriptions come directly from Trading API response
+    # Shopping API calls removed — Trading API provides both with GranularityLevel=Fine
+    imgs_found = sum(1 for i in live_items if i.get("img"))
+    desc_found = sum(1 for i in live_items if i.get("ebay_desc"))
+    print(f"  Images from Trading API:      {imgs_found}/{len(live_items)}")
+    print(f"  Descriptions from Trading API: {desc_found}/{len(live_items)}")
+    # Sample image URL for diagnostics
+    for item in live_items:
+        if item.get("img"):
+            print(f"  Sample image URL: {item['img'][:80]}")
+            break
     print()
-    # Upgrade img URLs and descriptions in live_by_id
-    for iid, item in live_by_id.items():
-        if iid in ebay_images:
-            item["img"] = ebay_images[iid]
-        item["ebay_desc"] = ebay_descs.get(iid, "")
 
     # 2. Load existing pages — cleans stale files automatically
     existing    = load_existing()
