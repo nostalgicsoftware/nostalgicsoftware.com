@@ -27,9 +27,7 @@
 :root{--bg:#0a0a0a;--bg2:#0f0f0f;--cyan:#00c8ff;--cyan-dim:#0088bb;--cyan-glow:rgba(0,200,255,0.15);--green:#00ff41;--text:#a0d8e8;--text-dim:#507080;--border:#1a1a2a;}
 *{box-sizing:border-box;margin:0;padding:0;}
 html,body{min-height:100vh;background:var(--bg);color:var(--text);font-family:'Share Tech Mono',monospace;overflow-x:hidden;}
-body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.4) 2px,rgba(0,0,0,0.4) 4px);pointer-events:none;z-index:1000;opacity:0.18;}
-body::after{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,200,255,0.035) 1px,transparent 1px),linear-gradient(90deg,rgba(0,200,255,0.035) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0;}
-.wrap{position:relative;z-index:1;max-width:860px;margin:0 auto;padding:40px 20px 60px;}
+.wrap{position:relative;max-width:860px;margin:0 auto;padding:40px 20px 60px;}
 .topbar{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--cyan-dim);padding-bottom:12px;margin-bottom:40px;font-size:11px;letter-spacing:2px;}
 .topbar-l{color:var(--text-dim);text-transform:uppercase;}
 .topbar-r a{color:var(--cyan-dim);text-decoration:none;margin-left:16px;}
@@ -47,6 +45,12 @@ body::after{content:'';position:fixed;inset:0;background-image:linear-gradient(r
 .buy-btn:hover{background:#40d8ff;box-shadow:0 0 30px rgba(0,200,255,0.6);transform:translateY(-2px);}
 .trust-bar{display:flex;gap:20px;flex-wrap:wrap;padding:12px 16px;border:1px solid var(--border);background:var(--bg2);font-size:11px;color:var(--text-dim);}
 .trust-bar span{color:var(--green);}
+.ebay-desc-wrap{margin:32px 0;}
+.ebay-desc-label{font-family:'Orbitron',sans-serif;font-size:11px;font-weight:700;color:var(--cyan);letter-spacing:3px;text-transform:uppercase;margin-bottom:14px;}
+.ebay-desc-toggle{background:none;border:1px solid var(--cyan-dim);color:var(--cyan-dim);font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:2px;padding:8px 20px;cursor:pointer;text-transform:uppercase;transition:all 0.2s;}
+.ebay-desc-toggle:hover{border-color:var(--cyan);color:var(--cyan);}
+.ebay-desc-frame{width:100%;border:1px solid var(--border);background:#fff;margin-top:12px;display:none;}
+.ebay-desc-frame.open{display:block;}
 .related-title{font-family:'Orbitron',sans-serif;font-size:11px;font-weight:700;color:var(--cyan);letter-spacing:3px;text-transform:uppercase;margin-bottom:14px;}
 .related-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;}
 .rp-card{background:var(--bg2);border:1px solid var(--border);text-decoration:none;color:inherit;transition:border-color 0.2s;display:block;}
