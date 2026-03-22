@@ -216,15 +216,18 @@ def filename(item_id):
     return os.path.join(OUTPUT_DIR, f"{slug(item_id)}.html")
 
 # ─────────────────────────────────────────────────────────────
-#  FETCH LISTINGS VIA EBAY SHOPPING API GetSellerList
-#  Works with App ID + Cert ID, no Browse API approval needed.
-#  Returns all active fixed-price listings for the seller.
+#  FETCH LISTINGS
+#  Primary:  eBay Trading API GetSellerList (requires EBAY_USER_TOKEN)
+#  Fallback: eBay RSS feed (no auth, works immediately)
 # ─────────────────────────────────────────────────────────────
-def fetch_items():
+EBAY_USER_TOKEN = os.environ.get("EBAY_USER_TOKEN", "")  # GitHub Secret — 18-month token
+
+
+def fetch_items_trading_api():
     """
-    Uses eBay Shopping API GetSellerList to fetch all active listings.
-    No OAuth needed — uses App ID directly.
-    Paginates automatically, returns full item list.
+    Trading API GetSellerList — returns all active listings for the seller.
+    Requires EBAY_USER_TOKEN set as GitHub Secret.
+    Token lasts 18 months. Generate at developer.ebay.com → User Tokens.
     """
     import urllib.parse
     from datetime import datetime, timezone, timedelta
@@ -232,47 +235,53 @@ def fetch_items():
     PAGE_SIZE = 200
     items     = []
     page      = 1
+    now       = datetime.now(timezone.utc)
+    end_from  = now.strftime("%Y-%m-%dT%H:%M:%S.000Z")
+    end_to    = (now + timedelta(days=120)).strftime("%Y-%m-%dT%H:%M:%S.000Z")
 
-    # Date range: listings ending in the next 120 days (covers all active listings)
-    now      = datetime.now(timezone.utc)
-    end_from = (now - timedelta(days=1)).strftime("%Y-%m-%dT%H:%M:%S.000Z")
-    end_to   = (now + timedelta(days=120)).strftime("%Y-%m-%dT%H:%M:%S.000Z")
-
-    print(f"  Fetching listings for seller: {EBAY_STORE}")
+    print(f"  [Trading API] Fetching listings for: {EBAY_STORE}")
 
     while True:
         params = urllib.parse.urlencode({
-            "callname":          "GetSellerList",
-            "responseencoding":  "JSON",
-            "appid":             EBAY_APP_ID,
-            "siteid":            "0",
-            "version":           "967",
-            "UserID":            EBAY_STORE,
-            "GranularityLevel":  "Fine",
-            "EndTimeFrom":       end_from,
-            "EndTimeTo":         end_to,
+            "callname":                  "GetSellerList",
+            "responseencoding":          "JSON",
+            "appid":                     EBAY_APP_ID,
+            "siteid":                    "0",
+            "version":                   "1113",
+            "UserID":                    EBAY_STORE,
+            "GranularityLevel":          "Fine",
+            "EndTimeFrom":               end_from,
+            "EndTimeTo":                 end_to,
+            "IncludeVariations":         "false",
             "Pagination.EntriesPerPage": PAGE_SIZE,
             "Pagination.PageNumber":     page,
-            "IncludeWatchCount": "false",
         })
-        url = f"https://open.api.ebay.com/shopping?{params}"
+        url = f"https://api.ebay.com/ws/api.dll"
 
         try:
-            req = urllib.request.Request(url, headers={"User-Agent": "NostalgicSoftware/1.0"})
+            req = urllib.request.Request(url, data=params.encode(), headers={
+                "X-EBAY-API-SITEID":        "0",
+                "X-EBAY-API-COMPATIBILITY-LEVEL": "1113",
+                "X-EBAY-API-CALL-NAME":     "GetSellerList",
+                "X-EBAY-API-APP-NAME":      EBAY_APP_ID,
+                "X-EBAY-API-RESPONSE-ENCODING": "JSON",
+                "X-EBAY-API-IAF-TOKEN":     EBAY_USER_TOKEN,
+                "Content-Type":             "application/x-www-form-urlencoded",
+            })
             with urllib.request.urlopen(req, timeout=30) as r:
                 data = json.loads(r.read().decode())
         except urllib.error.HTTPError as e:
             body = e.read().decode("utf-8", errors="replace")
-            print(f"  ERROR: HTTP {e.code} — {body[:400]}")
-            break
+            print(f"  [Trading API] ERROR: HTTP {e.code} — {body[:400]}")
+            return None
         except Exception as e:
-            print(f"  ERROR: {e}")
-            break
+            print(f"  [Trading API] ERROR: {e}")
+            return None
 
         ack = data.get("Ack", "")
         if ack not in ("Success", "Warning"):
-            print(f"  eBay API error: {data.get('Errors', data)}")
-            break
+            print(f"  [Trading API] API error: {json.dumps(data.get('Errors', {}))[:300]}")
+            return None
 
         listing_array = data.get("ItemArray", {}).get("Item", [])
         if not isinstance(listing_array, list):
@@ -282,47 +291,101 @@ def fetch_items():
         total_items = int(data.get("PaginationResult", {}).get("TotalNumberOfEntries", 0))
 
         for el in listing_array:
-            # Skip auctions — fixed price only
             listing_type = el.get("ListingType", "")
             if listing_type not in ("FixedPriceItem", "StoresFixedPrice"):
                 continue
-
             item_id = str(el.get("ItemID", ""))
             title   = (el.get("Title", "") or "").strip()
             price   = float((el.get("SellingStatus", {}).get("CurrentPrice", {}) or {}).get("#text", "0") or "0")
-
-            # Get best available image
-            pic_details = el.get("PictureDetails", {}) or {}
-            pics = pic_details.get("PictureURL", [])
-            if isinstance(pics, str):
-                pics = [pics]
-            img = pics[0] if pics else ""
-            if img:
-                img = re.sub(r"s-l\d+", "s-l1600", img)
-
+            pics    = el.get("PictureDetails", {}).get("PictureURL", [])
+            if isinstance(pics, str): pics = [pics]
+            img = re.sub(r"s-l\d+", "s-l1600", pics[0]) if pics else ""
             free_ship = bool(re.search(r"free\s*s/?h|free\s*ship", title, re.I))
-            category  = categorize(title)
-
             if item_id and title:
                 items.append({
-                    "id":        item_id,
-                    "title":     title,
-                    "ebay_url":  f"https://www.ebay.com/itm/{item_id}",
-                    "img":       img,
-                    "price":     price,
-                    "free_ship": free_ship,
-                    "category":  category,
-                    "ebay_desc": "",
+                    "id": item_id, "title": title,
+                    "ebay_url": f"https://www.ebay.com/itm/{item_id}",
+                    "img": img, "price": price,
+                    "free_ship": free_ship, "category": categorize(title), "ebay_desc": "",
                 })
 
-        print(f"  Page {page}/{total_pages}: got {len(listing_array)} listings ({total_items} total)")
-        if page >= total_pages:
-            break
+        print(f"  [Trading API] Page {page}/{total_pages}: {len(listing_array)} listings ({total_items} total)")
+        if page >= total_pages: break
         page += 1
         time.sleep(0.5)
 
-    print(f"  Total listings fetched: {len(items)}")
+    print(f"  [Trading API] Total fetched: {len(items)}")
     return items
+
+
+def fetch_items_rss():
+    """
+    Fallback: eBay RSS feed for seller listings.
+    No auth required. Works immediately.
+    """
+    import xml.etree.ElementTree as ET
+    RSS_URL = f"https://www.ebay.com/sch/i.html?_ssn={EBAY_STORE}&LH_BIN=1&_rss=1&_ipg=200"
+    print(f"  [RSS] Fetching from: {RSS_URL}")
+
+    try:
+        req = urllib.request.Request(RSS_URL, headers={"User-Agent": "Mozilla/5.0 NostalgicSoftware/1.0"})
+        with urllib.request.urlopen(req, timeout=30) as r:
+            raw = r.read()
+        root = ET.fromstring(raw)
+    except Exception as e:
+        print(f"  [RSS] ERROR: {e}")
+        return []
+
+    items = []
+    for el in root.findall(".//item"):
+        title = (el.findtext("title") or "").strip()
+        link  = (el.findtext("link")  or "").strip()
+        desc  = (el.findtext("description") or "")
+
+        # Extract item ID from link
+        id_m = re.search(r"/(\d{10,})", link)
+        if not id_m: continue
+        item_id = id_m.group(1)
+
+        # Price
+        price_m = re.search(r"\$([0-9]+\.[0-9]{2})", desc)
+        price   = float(price_m.group(1)) if price_m else 0.0
+
+        # Image — try to get best quality from description
+        img_m = re.search(r'src="(https?://[^"]+\.jpg[^"]*)"', desc, re.I)
+        img   = img_m.group(1) if img_m else ""
+        if img:
+            img = re.sub(r"s-l\d+", "s-l1600", img)
+
+        free_ship = bool(re.search(r"free\s*s/?h|free\s*ship", title, re.I))
+
+        if item_id and title:
+            items.append({
+                "id": item_id, "title": title,
+                "ebay_url": f"https://www.ebay.com/itm/{item_id}",
+                "img": img, "price": price,
+                "free_ship": free_ship, "category": categorize(title), "ebay_desc": "",
+            })
+
+    print(f"  [RSS] Fetched {len(items)} listings")
+    return items
+
+
+def fetch_items():
+    """
+    Try Trading API first (best data, requires EBAY_USER_TOKEN).
+    Fall back to RSS if token not set or Trading API fails.
+    """
+    if EBAY_USER_TOKEN:
+        print("  EBAY_USER_TOKEN found — trying Trading API...")
+        result = fetch_items_trading_api()
+        if result is not None:
+            return result
+        print("  Trading API failed — falling back to RSS")
+    else:
+        print("  No EBAY_USER_TOKEN set — using RSS fallback")
+
+    return fetch_items_rss()
 # ─────────────────────────────────────────────────────────────
 #  EXISTING PAGE INVENTORY
 # ─────────────────────────────────────────────────────────────
