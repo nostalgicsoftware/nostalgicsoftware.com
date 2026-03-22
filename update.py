@@ -74,21 +74,41 @@ CAT_MAP = [
     ("toys",         ["toy","happy meal","mcdonald","lego","plush","tsum","action figure","balance board","kids","baby","toddler","yoda"]),
 ]
 
+DESC_CACHE_PATH = "desc_cache.json"
+
+def load_desc_cache():
+    """Load cached descriptions from desc_cache.json."""
+    if os.path.exists(DESC_CACHE_PATH):
+        with open(DESC_CACHE_PATH, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return {}
+
+def save_desc_cache(cache):
+    """Save description cache to desc_cache.json."""
+    with open(DESC_CACHE_PATH, "w", encoding="utf-8") as f:
+        json.dump(cache, f)
+
 def fetch_ebay_descriptions(item_ids):
     """
-    Calls eBay GetMultipleItems Shopping API in batches of 20
-    with IncludeSelector=Description to get the full HTML description.
-    Returns dict: {item_id: "<html description string>"}
+    Fetches descriptions via Shopping API GetMultipleItems.
+    Uses desc_cache.json — only fetches items not already cached.
+    Each description is fetched ONCE ever, then reused from cache.
+    Batches of 5 with 2s delay to avoid rate limits.
     """
-    if not EBAY_APP_ID:
-        return {}
-
     import urllib.parse
-    result = {}
-    ids = list(item_ids)
 
-    for i in range(0, len(ids), 10):
-        batch = ids[i:i+10]
+    cache  = load_desc_cache()
+    ids    = list(item_ids)
+    needed = [iid for iid in ids if iid not in cache]
+
+    if not needed:
+        print(f"  [desc] All {len(ids)} descriptions loaded from cache")
+        return {iid: cache[iid] for iid in ids if iid in cache}
+
+    print(f"  [desc] Fetching {len(needed)} new descriptions (cached: {len(ids)-len(needed)})")
+
+    for i in range(0, len(needed), 5):
+        batch  = needed[i:i+5]
         id_str = ",".join(batch)
         url = (
             "https://open.api.ebay.com/shopping?"
@@ -104,169 +124,22 @@ def fetch_ebay_descriptions(item_ids):
             req = urllib.request.Request(url, headers={"User-Agent": "NostalgicSoftware/1.0"})
             with urllib.request.urlopen(req, timeout=15) as r:
                 data = json.loads(r.read().decode())
-            items = data.get("Item") or []
-            if not isinstance(items, list):
-                items = [items]
-            for itm in items:
+            items_data = data.get("Item") or []
+            if not isinstance(items_data, list):
+                items_data = [items_data]
+            for itm in items_data:
                 iid  = str(itm.get("ItemID",""))
                 desc = itm.get("Description","") or ""
                 if iid and desc:
-                    result[iid] = desc
+                    cache[iid] = desc
         except Exception as e:
-            print(f"  [desc] Batch {i//10+1} failed: {e}")
-        time.sleep(1)  # 1 second between batches to avoid rate limiting
+            print(f"  [desc] Batch {i//5+1} failed: {e}")
+        time.sleep(2)
 
+    save_desc_cache(cache)
+    result = {iid: cache[iid] for iid in ids if iid in cache}
     print(f"  [desc] Got descriptions for {len(result)}/{len(ids)} items")
     return result
-
-
-def fetch_ebay_images(item_ids):
-    """
-    Calls eBay GetMultipleItems Shopping API in batches of 20.
-    Returns dict: {item_id: "https://i.ebayimg.com/...s-l1600.jpg"}
-    Falls back gracefully — missing items just won't be in the dict.
-    Requires EBAY_APP_ID to be set in CONFIG above.
-    """
-    if not EBAY_APP_ID:
-        print("  [images] No EBAY_APP_ID set — using Auctiva thumbnails")
-        return {}
-
-    import urllib.parse
-    result = {}
-    batch_size = 10
-    ids = list(item_ids)
-
-    for i in range(0, len(ids), batch_size):
-        batch = ids[i:i+batch_size]
-        id_str = ",".join(batch)
-        url = (
-            "https://open.api.ebay.com/shopping?"
-            f"callname=GetMultipleItems"
-            f"&responseencoding=JSON"
-            f"&appid={urllib.parse.quote(EBAY_APP_ID)}"
-            f"&siteid=0"
-            f"&version=967"
-            f"&ItemID={id_str}"
-            f"&IncludeSelector=PictureDetails"
-        )
-        try:
-            req = urllib.request.Request(url, headers={"User-Agent": "NostalgicSoftware/1.0"})
-            with urllib.request.urlopen(req, timeout=15) as r:
-                data = json.loads(r.read().decode())
-
-            items = data.get("Item") or []
-            if not isinstance(items, list):
-                items = [items]
-            for itm in items:
-                iid = str(itm.get("ItemID",""))
-                pics = itm.get("PictureURL") or []
-                if isinstance(pics, str):
-                    pics = [pics]
-                if pics:
-                    url_hi = pics[0].replace("s-l225","s-l1600").replace("s-l500","s-l1600")
-                    result[iid] = url_hi
-            print(f"  [images] Batch {i//batch_size+1}: fetched {len(items)} items from eBay API")
-        except Exception as e:
-            print(f"  [images] Batch {i//batch_size+1} failed: {e} — will use Auctiva fallback")
-        time.sleep(2)  # 2 seconds between batches to avoid rate limiting
-
-    return result
-
-
-def auctiva_img(item_id):
-    """Fallback thumbnail from Auctiva CDN."""
-    return f"https://scimg.auctiva.com/imgsc/0/7/2/2/4/1/sc/{item_id}.jpg"
-
-
-def best_img(item_id, ebay_images):
-    """Return eBay full-res URL if available, else Auctiva thumbnail."""
-    return ebay_images.get(str(item_id)) or auctiva_img(item_id)
-
-
-def categorize(title):
-    t = title.lower()
-    for key, kws in CAT_MAP:
-        if any(k in t for k in kws):
-            return key
-    return "other"
-
-def smart_keywords(title, category):
-    """
-    Build a keywords string from the item title + category extras,
-    filtering out any extra phrase that repeats significant words
-    already present in the title. Avoids redundant keyword stuffing.
-    """
-    title_words = set(re.sub(r"[^a-z0-9\s]", " ", title.lower()).split())
-    noise = {"a","an","the","and","or","for","of","in","on","at","to","with","by",
-             "from","is","it","as","be","we","new","used","lot","set","pack"}
-    title_sig = title_words - noise
-    raw_extras = CAT_EXTRA_KW.get(category, "").split(", ")
-    filtered = []
-    for phrase in raw_extras:
-        phrase_words = set(re.sub(r"[^a-z0-9\s]", " ", phrase.lower()).split()) - noise
-        if phrase_words & title_sig:
-            continue
-        filtered.append(phrase.strip())
-    parts = [title] + filtered + ["NostalgicSoftware eBay store", "nostalgic-software"]
-    return ", ".join(parts)
-
-# ─────────────────────────────────────────────────────────────
-#  SLUG REGISTRY — permanent slugs, never change after first set
-#  Edit slugs.json in the repo to change a specific slug.
-#  The script will rename the file and redirect automatically.
-# ─────────────────────────────────────────────────────────────
-SLUG_REGISTRY_PATH = "slugs.json"
-
-SLUG_STOP = {"a","an","the","and","or","for","of","in","on","at","to","with","by","from",
-             "new","free","s/h","w/","size","color","set","lot","pack","box","per",
-             "2019","2020","2021","2022","2023","2024","2025","2026"}
-
-def load_slug_registry():
-    """Load existing slug registry from slugs.json."""
-    if os.path.exists(SLUG_REGISTRY_PATH):
-        with open(SLUG_REGISTRY_PATH, "r", encoding="utf-8") as f:
-            return json.load(f)
-    return {}
-
-def save_slug_registry(registry):
-    """Save slug registry to slugs.json."""
-    with open(SLUG_REGISTRY_PATH, "w", encoding="utf-8") as f:
-        json.dump(registry, f, indent=2, sort_keys=True)
-
-def auto_slug(item_id, title):
-    """Generate a slug from title words — only used for NEW items not in registry."""
-    words = re.sub(r"[^a-z0-9\s]", " ", title.lower()).split()
-    words = [w for w in words if w not in SLUG_STOP and len(w) > 2]
-    return "-".join(words[:3]) + f"-{item_id}"
-
-# Global registry — loaded once at startup
-SLUG_REGISTRY = load_slug_registry()
-
-def get_slug(item_id, title=""):
-    """
-    Get slug for item. Uses registry if exists, generates new one otherwise.
-    New slugs are saved to registry immediately so they never change.
-    """
-    if item_id in SLUG_REGISTRY:
-        return SLUG_REGISTRY[item_id] + f"-{item_id}"
-    # New item — generate and permanently register
-    new_slug_base = auto_slug(item_id, title).replace(f"-{item_id}", "")
-    SLUG_REGISTRY[item_id] = new_slug_base
-    save_slug_registry(SLUG_REGISTRY)
-    print(f"  [registry] New slug registered: {new_slug_base}-{item_id}")
-    return f"{new_slug_base}-{item_id}"
-
-def slug(item_id, title=""):
-    return get_slug(item_id, title)
-
-def filename(item_id, title=""):
-    return os.path.join(OUTPUT_DIR, f"{get_slug(item_id, title)}.html")
-
-# ─────────────────────────────────────────────────────────────
-#  FETCH LISTINGS — eBay Trading API GetSellerList (XML)
-#  Uses EBAY_USER_TOKEN (18-month Auth'n'Auth token)
-#  Token generated: March 22, 2026 — Expires: September 13, 2027
-# ─────────────────────────────────────────────────────────────
 def fetch_items():
     """
     Calls Trading API GetSellerList via XML POST.
@@ -563,7 +436,7 @@ function autoHeight(f){{
 <style>
 .item-layout{{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-bottom:40px;}}
 .item-img-wrap{{}}
-.item-img{{width:100%;border:1px solid var(--cyan-dim);box-shadow:0 0 30px var(--cyan-glow);display:block;}}
+.item-img{{width:100%;border:1px solid var(--cyan-dim);box-shadow:0 0 30px var(--cyan-glow);display:block;mix-blend-mode:multiply;background:#fff;}}
 .img-placeholder{{width:100%;aspect-ratio:1;background:#111;display:flex;align-items:center;justify-content:center;font-family:'VT323',monospace;font-size:16px;color:#333;border:1px solid var(--border);}}
 .item-meta{{display:flex;flex-direction:column;gap:16px;}}
 .item-cat{{font-size:10px;color:var(--cyan-dim);letter-spacing:3px;text-transform:uppercase;}}
@@ -801,18 +674,21 @@ def main():
     live_ids    = {i["id"] for i in live_items}
     live_by_id  = {i["id"]: i for i in live_items}
 
-    # 1b. Images and descriptions come directly from Trading API response
-    # Shopping API calls removed — Trading API provides both with GranularityLevel=Fine
+    # 1b. Images come from Trading API directly
+    # Descriptions fetched via Shopping API with local cache (desc_cache.json)
     imgs_found = sum(1 for i in live_items if i.get("img"))
-    desc_found = sum(1 for i in live_items if i.get("ebay_desc"))
-    print(f"  Images from Trading API:      {imgs_found}/{len(live_items)}")
-    print(f"  Descriptions from Trading API: {desc_found}/{len(live_items)}")
-    # Sample image URL for diagnostics
+    print(f"  Images from Trading API: {imgs_found}/{len(live_items)}")
     for item in live_items:
         if item.get("img"):
             print(f"  Sample image URL: {item['img'][:100]}")
-            print(f"  Sample desc chars: {len(item.get('ebay_desc',''))}")
             break
+
+    print("  Fetching descriptions (cached)...")
+    ebay_descs = fetch_ebay_descriptions(live_ids)
+    for iid, item in live_by_id.items():
+        item["ebay_desc"] = ebay_descs.get(iid, "")
+    desc_found = sum(1 for i in live_items if i.get("ebay_desc"))
+    print(f"  Descriptions loaded: {desc_found}/{len(live_items)}")
     print()
 
     # 2. Load existing pages — cleans stale files automatically
