@@ -203,8 +203,12 @@ def fetch_ebay_descriptions(item_ids):
                 if item_el is not None:
                     tags = [child.tag.split("}")[-1] for child in item_el]
                     print(f"  [desc] Item tags returned: {tags[:15]}")
-                    desc_el = item_el.find("e:Description", namespaces=ns) or item_el.find("Description")
-                    print(f"  [desc] Description element: {desc_el}")
+                    desc_el = None
+                    for child in item_el:
+                        if child.tag.split("}")[-1] == "Description":
+                            desc_el = child
+                            break
+                    print(f"  [desc] Description element found: {desc_el is not None}")
                     if desc_el is not None:
                         print(f"  [desc] Description text length: {len(desc_el.text or '')}")
                 else:
@@ -213,7 +217,12 @@ def fetch_ebay_descriptions(item_ids):
             if ack in ("Success", "Warning"):
                 item_el = root.find("e:Item", namespaces=ns) or root.find("Item")
                 if item_el is not None:
-                    desc_el = item_el.find("e:Description", namespaces=ns) or item_el.find("Description")
+                    # Tags returned without namespace prefix — search by local name
+                    desc_el = None
+                    for child in item_el:
+                        if child.tag.split("}")[-1] == "Description":
+                            desc_el = child
+                            break
                     if desc_el is not None and desc_el.text:
                         cache[iid] = desc_el.text
             if (idx+1) % 10 == 0:
