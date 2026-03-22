@@ -181,7 +181,13 @@ def fetch_ebay_descriptions(item_ids):
         try:
             req = urllib.request.Request(url, headers={"User-Agent": "NostalgicSoftware/1.0"})
             with urllib.request.urlopen(req, timeout=15) as r:
-                data = json.loads(r.read().decode())
+                raw = r.read()
+            data = json.loads(raw.decode())
+            # Log first batch response for diagnostics
+            if i == 0:
+                ack = data.get("Ack","")
+                errs = data.get("Errors","")
+                print(f"  [desc] Batch 1 Ack={ack} Errors={str(errs)[:200]}")
             items_data = data.get("Item") or []
             if not isinstance(items_data, list):
                 items_data = [items_data]
@@ -190,6 +196,11 @@ def fetch_ebay_descriptions(item_ids):
                 desc = itm.get("Description","") or ""
                 if iid and desc:
                     cache[iid] = desc
+                elif iid and not desc:
+                    print(f"  [desc] Item {iid} returned empty description")
+        except urllib.error.HTTPError as e:
+            body = e.read().decode("utf-8", errors="replace")
+            print(f"  [desc] Batch {i//5+1} HTTP {e.code}: {body[:300]}")
         except Exception as e:
             print(f"  [desc] Batch {i//5+1} failed: {e}")
         time.sleep(2)
@@ -759,33 +770,42 @@ def main():
     new_ids  = live_ids - set(existing.keys())
     sold_ids = existing_active - live_ids
 
+    existing_on_disk = {k for k in live_ids
+                        if os.path.exists(filename(live_by_id[k].get("id",""),
+                                                    live_by_id[k].get("title","")))}
+    missing_ids = live_ids - set(existing.keys()) - new_ids
+
     print(f"  Live in feed:      {len(live_ids)}")
     print(f"  Existing pages:    {len(existing)}")
     print(f"  New listings:      {len(new_ids)}")
-    print(f"  Rebuilding all:    {len(live_ids)} (always regenerate with current CSS)")
+    print(f"  Already on disk:   {len(existing_on_disk)} (untouched)")
     print(f"  Sold/gone:         {len(sold_ids)}")
     print(f"  Already tombstone: {len(existing_tombstone)}\n")
 
-    # 4. Always rebuild ALL active pages with current CSS + slug
+    # 4. Only write pages that need it:
+    #    - NEW items: create fresh page
+    #    - Existing items: leave completely alone (slug registry keeps URL stable)
+    #    - Sold items: handled in step 5
     wrote = 0
     for item_id in live_ids:
         item     = live_by_id[item_id]
         new_path = filename(item_id, item.get("title", ""))
 
-        # Remove old file if slug changed (item-ID.html → 3-word-slug-ID.html)
-        if item_id in existing:
-            old_fname = existing[item_id][1]
-            old_path  = os.path.join(OUTPUT_DIR, old_fname)
-            if old_path != new_path and os.path.exists(old_path):
-                os.remove(old_path)
-                print(f"  [cleanup] Removed old slug: {old_fname}")
-
-        html = build_active_page(item, live_items)
-        with open(new_path, "w", encoding="utf-8") as f:
-            f.write(html)
-        tag = "NEW" if item_id in new_ids else "REBUILD"
-        print(f"  [{tag}] {new_path}")
-        wrote += 1
+        if item_id in new_ids:
+            # Brand new listing — create page
+            html = build_active_page(item, live_items)
+            with open(new_path, "w", encoding="utf-8") as f:
+                f.write(html)
+            print(f"  [NEW] {new_path}")
+            wrote += 1
+        elif not os.path.exists(new_path):
+            # Page missing from disk (e.g. first run after slug migration) — create it
+            html = build_active_page(item, live_items)
+            with open(new_path, "w", encoding="utf-8") as f:
+                f.write(html)
+            print(f"  [MISSING→CREATE] {new_path}")
+            wrote += 1
+        # else: page exists, item still live — leave it alone
 
     # 5. Convert sold items to tombstones — keep URL alive with suggestions
     for item_id in sold_ids:
