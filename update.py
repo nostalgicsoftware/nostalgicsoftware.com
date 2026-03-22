@@ -321,19 +321,50 @@ def fetch_items_trading_api():
 def fetch_items_rss():
     """
     Fallback: eBay RSS feed for seller listings.
-    No auth required. Works immediately.
+    Tries multiple RSS URL formats with browser-like headers.
     """
     import xml.etree.ElementTree as ET
-    RSS_URL = f"https://www.ebay.com/sch/i.html?_ssn={EBAY_STORE}&LH_BIN=1&_rss=1&_ipg=200"
-    print(f"  [RSS] Fetching from: {RSS_URL}")
+
+    # Multiple URL formats to try
+    RSS_URLS = [
+        f"https://www.ebay.com/sch/i.html?_ssn={EBAY_STORE}&LH_BIN=1&_rss=1&_ipg=200",
+        f"https://www.ebay.com/sch/i.html?_nkw=&_ssn={EBAY_STORE}&_sop=10&LH_BIN=1&_rss=1",
+        f"https://www.ebay.com/usr/{EBAY_STORE}?_rss=1",
+    ]
+
+    HEADERS = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "application/rss+xml, application/xml, text/xml, */*",
+        "Accept-Language": "en-US,en;q=0.9",
+    }
+
+    raw = None
+    for rss_url in RSS_URLS:
+        print(f"  [RSS] Trying: {rss_url}")
+        try:
+            req = urllib.request.Request(rss_url, headers=HEADERS)
+            with urllib.request.urlopen(req, timeout=30) as r:
+                raw = r.read()
+            # Check it looks like XML not HTML
+            if raw.strip().startswith(b"<") and b"<html" not in raw[:200].lower():
+                print(f"  [RSS] Got XML response ({len(raw)} bytes)")
+                break
+            else:
+                print(f"  [RSS] Got HTML response (bot block) — trying next URL")
+                raw = None
+        except Exception as e:
+            print(f"  [RSS] ERROR: {e} — trying next URL")
+            raw = None
+
+    if not raw:
+        print("  [RSS] All URLs failed or returned HTML — no listings fetched")
+        return []
 
     try:
-        req = urllib.request.Request(RSS_URL, headers={"User-Agent": "Mozilla/5.0 NostalgicSoftware/1.0"})
-        with urllib.request.urlopen(req, timeout=30) as r:
-            raw = r.read()
         root = ET.fromstring(raw)
-    except Exception as e:
-        print(f"  [RSS] ERROR: {e}")
+    except ET.ParseError as e:
+        print(f"  [RSS] XML parse error: {e}")
+        print(f"  [RSS] First 300 bytes: {raw[:300]}")
         return []
 
     items = []
@@ -342,16 +373,13 @@ def fetch_items_rss():
         link  = (el.findtext("link")  or "").strip()
         desc  = (el.findtext("description") or "")
 
-        # Extract item ID from link
         id_m = re.search(r"/(\d{10,})", link)
         if not id_m: continue
         item_id = id_m.group(1)
 
-        # Price
         price_m = re.search(r"\$([0-9]+\.[0-9]{2})", desc)
         price   = float(price_m.group(1)) if price_m else 0.0
 
-        # Image — try to get best quality from description
         img_m = re.search(r'src="(https?://[^"]+\.jpg[^"]*)"', desc, re.I)
         img   = img_m.group(1) if img_m else ""
         if img:
