@@ -210,11 +210,53 @@ def smart_keywords(title, category):
     parts = [title] + filtered + ["NostalgicSoftware eBay store", "nostalgic-software"]
     return ", ".join(parts)
 
-def slug(item_id):
+# ─────────────────────────────────────────────────────────────
+#  SLUG GENERATION — 3-word keyword slug + eBay ID
+# ─────────────────────────────────────────────────────────────
+SLUG_OVERRIDES = {
+    "224050023801":"party-garlands-decoration","324215180360":"usb-hdmi-adapter",
+    "326414379465":"thermal-paper-rolls","226274217296":"harry-potter-screener",
+    "326220664776":"minority-report-screener","227243722967":"valve-stem-extender",
+    "327025989867":"kcup-holder-replacement","326482266253":"scooter-adapter-power",
+    "226762729338":"bike-scooter-bell",
+    "323965900818":"tampa-lightning-magnets",
+    "324700322405":"tampa-lightning-budlight-2020-box",
+    "324935406132":"tampa-lightning-budlight-2021-3pack",
+    "224736662928":"tampa-lightning-budlight-2021-boxed",
+    "224736662929":"tampa-lightning-budlight-2020-3pack",
+    "224736662932":"tampa-lightning-budlight-2020-boxed",
+    "224736662933":"tampa-lightning-budlight-both-years",
+    "224067231458":"kids-sprinkler-mat-58x64",
+    "224067233561":"kids-sprinkler-mat-62inch-round",
+    "324218651100":"kids-sprinkler-mat-62inch",
+    "324226524448":"kids-splash-mat-62inch-round",
+    "226558709866":"disney-mickey-muscle-shirt",
+    "226617997854":"disney-mickey-rain-poncho",
+    "326914495676":"coca-cola-vanilla-bottle",
+    "326917045940":"coca-cola-vanilla-cans",
+    "326925761912":"coca-cola-vanilla-zero-sugar",
+}
+
+SLUG_STOP = {"a","an","the","and","or","for","of","in","on","at","to","with","by","from",
+             "new","free","s/h","w/","size","color","set","lot","pack","box","per",
+             "2019","2020","2021","2022","2023","2024","2025","2026"}
+
+def make_slug(item_id, title):
+    """Generate unique 3-word-keyword + ID slug for item page filename."""
+    if item_id in SLUG_OVERRIDES:
+        return f"{SLUG_OVERRIDES[item_id]}-{item_id}"
+    words = re.sub(r"[^a-z0-9\s]", " ", title.lower()).split()
+    words = [w for w in words if w not in SLUG_STOP and len(w) > 2]
+    return "-".join(words[:3]) + f"-{item_id}"
+
+def slug(item_id, title=""):
+    """Wrapper — uses make_slug if title provided, else falls back to item-ID."""
+    if title:
+        return make_slug(item_id, title)
     return f"item-{item_id}"
 
-def filename(item_id):
-    return os.path.join(OUTPUT_DIR, f"{slug(item_id)}.html")
+def filename(item_id, title=""):
+    return os.path.join(OUTPUT_DIR, f"{slug(item_id, title)}.html")
 
 # ─────────────────────────────────────────────────────────────
 #  FETCH LISTINGS — eBay Trading API GetSellerList (XML)
@@ -348,6 +390,7 @@ def fetch_items():
                 items.append({
                     "id":        item_id,
                     "title":     title,
+                    "slug":      make_slug(item_id, title),
                     "ebay_url":  f"https://www.ebay.com/itm/{item_id}",
                     "img":       img,
                     "price":     price,
@@ -368,22 +411,31 @@ def fetch_items():
 #  EXISTING PAGE INVENTORY
 # ─────────────────────────────────────────────────────────────
 def load_existing():
-    """Returns dict of item_id -> 'active' | 'tombstone'"""
+    """
+    Returns dict of item_id -> 'active' | 'tombstone'.
+    Matches any slug format ending in -ITEMID.html or item-ITEMID.html.
+    Deletes any files that don't match valid slug pattern (cleanup stale files).
+    """
     existing = {}
     if not os.path.isdir(OUTPUT_DIR):
         return existing
     for fname in os.listdir(OUTPUT_DIR):
-        m = re.match(r"item-(\d+)\.html", fname)
+        # Match both old format (item-ID.html) and new (words-ID.html)
+        m = re.search(r"-(\d{10,})\.html$", fname)
         if not m:
+            # Delete files that don't match any valid pattern
+            stale_path = os.path.join(OUTPUT_DIR, fname)
+            os.remove(stale_path)
+            print(f"  [cleanup] Removed stale file: {fname}")
             continue
         item_id = m.group(1)
         path = os.path.join(OUTPUT_DIR, fname)
         with open(path, "r", encoding="utf-8") as f:
-            content = f.read()
-        if "missed-this-one" in content or "LOOKS LIKE YOU MISSED" in content:
-            existing[item_id] = "tombstone"
+            page_content = f.read()
+        if "missed-this-one" in page_content or "LOOKS LIKE YOU MISSED" in page_content:
+            existing[item_id] = ("tombstone", fname)
         else:
-            existing[item_id] = "active"
+            existing[item_id] = ("active", fname)
     return existing
 
 # ─────────────────────────────────────────────────────────────
@@ -490,9 +542,9 @@ function autoHeight(f){{
 <meta property="og:title" content="{escape(item['title'])} — NostalgicSoftware.com">
 <meta property="og:description" content="Buy {escape(item['title'])} — {price_str}. Ships fast from a trusted seller with 100% positive feedback.">
 <meta property="og:type" content="product">
-<meta property="og:url" content="{SITE_BASE}/items/{slug(item['id'])}.html">
+<meta property="og:url" content="{SITE_BASE}/items/{item.get('slug', slug(item['id'], item.get('title','')))}.html">
 {f'<meta property="og:image" content="{escape(item["img"])}">' if item["img"] else ""}
-<link rel="canonical" href="{SITE_BASE}/items/{slug(item['id'])}.html">
+<link rel="canonical" href="{SITE_BASE}/items/{item.get('slug', slug(item['id'], item.get('title','')))}.html">
 {SHARED_FONTS}
 {SHARED_CSS}
 <style>
@@ -694,7 +746,7 @@ def write_sitemap(active_ids, tombstone_ids):
     for item_id in sorted(active_ids):
         lines += [
             '  <url>',
-            f'    <loc>{SITE_BASE}/items/{slug(item_id)}.html</loc>',
+            f'    <loc>{SITE_BASE}/items/{slug(item_id, live_by_id.get(item_id, {}).get("title", ""))}.html</loc>',
             f'    <lastmod>{TODAY}</lastmod>',
             '    <changefreq>daily</changefreq>',
             '    <priority>0.8</priority>',
@@ -705,7 +757,7 @@ def write_sitemap(active_ids, tombstone_ids):
     for item_id in sorted(tombstone_ids):
         lines += [
             '  <url>',
-            f'    <loc>{SITE_BASE}/items/{slug(item_id)}.html</loc>',
+            f'    <loc>{SITE_BASE}/items/{slug(item_id, live_by_id.get(item_id, {}).get("title", ""))}.html</loc>',
             f'    <lastmod>{TODAY}</lastmod>',
             '    <changefreq>monthly</changefreq>',
             '    <priority>0.3</priority>',
@@ -749,14 +801,15 @@ def main():
             item["img"] = ebay_images[iid]
         item["ebay_desc"] = ebay_descs.get(iid, "")
 
-    # 2. Load existing pages
+    # 2. Load existing pages — cleans stale files automatically
     existing    = load_existing()
-    existing_active    = {k for k, v in existing.items() if v == "active"}
-    existing_tombstone = {k for k, v in existing.items() if v == "tombstone"}
+    # existing values are tuples: (status, filename)
+    existing_active    = {k for k, v in existing.items() if v[0] == "active"}
+    existing_tombstone = {k for k, v in existing.items() if v[0] == "tombstone"}
 
     # 3. Diff
-    new_ids     = live_ids - set(existing.keys())
-    sold_ids    = existing_active - live_ids          # was active, now gone
+    new_ids  = live_ids - set(existing.keys())
+    sold_ids = existing_active - live_ids
 
     print(f"  Live in feed:      {len(live_ids)}")
     print(f"  Existing pages:    {len(existing)}")
@@ -765,49 +818,60 @@ def main():
     print(f"  Sold/gone:         {len(sold_ids)}")
     print(f"  Already tombstone: {len(existing_tombstone)}\n")
 
-    # 4. Always rebuild ALL active pages — ensures current CSS/template on every run
+    # 4. Always rebuild ALL active pages with current CSS + slug
     wrote = 0
     for item_id in live_ids:
-        item = live_by_id[item_id]
+        item     = live_by_id[item_id]
+        new_path = filename(item_id, item.get("title", ""))
+
+        # Remove old file if slug changed (item-ID.html → 3-word-slug-ID.html)
+        if item_id in existing:
+            old_fname = existing[item_id][1]
+            old_path  = os.path.join(OUTPUT_DIR, old_fname)
+            if old_path != new_path and os.path.exists(old_path):
+                os.remove(old_path)
+                print(f"  [cleanup] Removed old slug: {old_fname}")
+
         html = build_active_page(item, live_items)
-        path = filename(item_id)
-        with open(path, "w", encoding="utf-8") as f:
+        with open(new_path, "w", encoding="utf-8") as f:
             f.write(html)
         tag = "NEW" if item_id in new_ids else "REBUILD"
-        print(f"  [{tag}] {path}")
+        print(f"  [{tag}] {new_path}")
         wrote += 1
 
-    # 5. Convert sold items to tombstones
+    # 5. Convert sold items to tombstones — keep URL alive with suggestions
     for item_id in sold_ids:
-        # Try to recover title/img/cat from existing page (best-effort scrape)
-        path = filename(item_id)
         old_title = ""
         old_img   = ""
         old_cat   = "other"
-        if os.path.exists(path):
-            with open(path, "r", encoding="utf-8") as f:
-                content = f.read()
-            t = re.search(r"<title>(.+?) — NostalgicSoftware", content)
-            if t:
-                old_title = t.group(1)
-            i = re.search(r'<meta property="og:image" content="([^"]+)"', content)
-            if i:
-                old_img = i.group(1)
-            c = re.search(r"// (\w+)</div>\s*<div class=\"item-title", content)
-            if c:
-                old_cat = c.group(1)
+        tomb_path = None
 
-        # Pick 4 suggestions from same category
+        if item_id in existing:
+            old_fname = existing[item_id][1]
+            old_path  = os.path.join(OUTPUT_DIR, old_fname)
+            if os.path.exists(old_path):
+                with open(old_path, "r", encoding="utf-8") as f:
+                    page_content = f.read()
+                t = re.search(r"<title>(.+?) — NostalgicSoftware", page_content)
+                if t: old_title = t.group(1)
+                im = re.search(r'<meta property="og:image" content="([^"]+)"', page_content)
+                if im: old_img = im.group(1)
+                c = re.search(r"// (\w+)</div>", page_content)
+                if c: old_cat = c.group(1)
+                tomb_path = old_path
+
+        if not tomb_path:
+            tomb_path = filename(item_id, old_title)
+
         suggestions = [i for i in live_items if i["category"] == old_cat][:4]
         if len(suggestions) < 4:
             suggestions += live_items[:4 - len(suggestions)]
 
         html = build_tombstone_page(item_id, old_title, old_img, old_cat, suggestions)
-        with open(path, "w", encoding="utf-8") as f:
+        with open(tomb_path, "w", encoding="utf-8") as f:
             f.write(html)
-        print(f"  [SOLD→TOMBSTONE] {path}  (\"{old_title[:50]}\")")
+        print(f"  [SOLD→TOMBSTONE] {tomb_path}  (\"{old_title[:50]}\")")
         wrote += 1
-
     # 6. Sitemap
     all_active    = (live_ids) | (existing_tombstone - sold_ids)
     all_tombstone = existing_tombstone | sold_ids
