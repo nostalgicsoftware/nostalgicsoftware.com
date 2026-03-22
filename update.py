@@ -74,6 +74,22 @@ CAT_MAP = [
     ("toys",         ["toy","happy meal","mcdonald","lego","plush","tsum","action figure","balance board","kids","baby","toddler","yoda"]),
 ]
 
+def categorize(title):
+    t = title.lower()
+    for key, kws in CAT_MAP:
+        if any(k in t for k in kws):
+            return key
+    return "other"
+
+def smart_keywords(title, category):
+    """Build keywords string filtering out redundant extras already in title."""
+    noise = {"a","an","the","and","or","for","of","in","on","at","to","with","by",
+             "from","is","it","as","be","we","new","used","lot","set","pack"}
+    title_sig = set(re.sub(r"[^a-z0-9\s]"," ",title.lower()).split()) - noise
+    filtered = [p.strip() for p in CAT_EXTRA_KW.get(category,"").split(", ")
+                if not ((set(re.sub(r"[^a-z0-9\s]"," ",p.lower()).split())-noise) & title_sig)]
+    return ", ".join([title] + filtered + ["NostalgicSoftware eBay store","nostalgic-software"])
+
 # ─────────────────────────────────────────────────────────────
 #  SLUG REGISTRY — permanent slugs, never change after first set
 #  Edit slugs.json in the repo to change a specific slug.
