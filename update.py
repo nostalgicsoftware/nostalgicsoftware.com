@@ -196,6 +196,20 @@ def fetch_ebay_descriptions(item_ids):
                 raw = r.read()
             root = ET.fromstring(raw)
             ack  = root.findtext("e:Ack", namespaces=ns) or root.findtext("Ack") or ""
+            # Diagnose first item only
+            if idx == 0:
+                print(f"  [desc] First item Ack={ack}")
+                item_el = root.find("e:Item", namespaces=ns) or root.find("Item")
+                if item_el is not None:
+                    tags = [child.tag.split("}")[-1] for child in item_el]
+                    print(f"  [desc] Item tags returned: {tags[:15]}")
+                    desc_el = item_el.find("e:Description", namespaces=ns) or item_el.find("Description")
+                    print(f"  [desc] Description element: {desc_el}")
+                    if desc_el is not None:
+                        print(f"  [desc] Description text length: {len(desc_el.text or '')}")
+                else:
+                    print(f"  [desc] No Item element found in response")
+                    print(f"  [desc] Root tags: {[child.tag.split('}')[-1] for child in root]}")
             if ack in ("Success", "Warning"):
                 item_el = root.find("e:Item", namespaces=ns) or root.find("Item")
                 if item_el is not None:
@@ -206,6 +220,9 @@ def fetch_ebay_descriptions(item_ids):
                 print(f"  [desc] {idx+1}/{len(needed)} fetched...")
         except Exception as e:
             print(f"  [desc] Item {iid} failed: {e}")
+            if idx == 0:
+                import traceback
+                traceback.print_exc()
         time.sleep(0.5)
 
     save_desc_cache(cache)
