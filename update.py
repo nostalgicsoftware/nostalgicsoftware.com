@@ -348,19 +348,21 @@ def fetch_items():
                     price = float(cp.text or "0")
 
             # Images
-            pic_details = el.find("e:PictureDetails", namespaces=ns) or el.find("PictureDetails")
+            # Search by local tag name — avoids namespace issues
             img = ""
+            pic_details = None
+            for child in el:
+                if child.tag.split("}")[-1] == "PictureDetails":
+                    pic_details = child
+                    break
             if pic_details is not None:
-                pic_urls = pic_details.findall("e:PictureURL", namespaces=ns)
-                if not pic_urls:
-                    pic_urls = pic_details.findall("PictureURL")
-                if pic_urls:
-                    img = pic_urls[0].text or ""
-                    if img:
-                        # Handle s-lNNN format (e.g. s-l225, s-l500)
-                        img = re.sub(r"s-l\d+", "s-l1600", img)
-                        # Handle $_NN format (e.g. $_12, $_35) — replace with $_57 (1600px)
-                        img = re.sub(r"\$_\d+", "$_57", img)
+                for child in pic_details:
+                    if child.tag.split("}")[-1] == "PictureURL" and child.text:
+                        img = child.text
+                        break
+            if img:
+                img = re.sub(r"s-l\d+", "s-l1600", img)
+                img = re.sub(r"\$_\d+", "$_57", img)
 
             # Description — Trading API returns full HTML description with GranularityLevel=Fine
             desc_el = el.find("e:Description", namespaces=ns)
@@ -775,7 +777,10 @@ def main():
     # 1b. Images come from Trading API directly
     # Descriptions fetched via Shopping API with local cache (desc_cache.json)
     imgs_found = sum(1 for i in live_items if i.get("img"))
+    imgs_empty = [i["id"] for i in live_items if not i.get("img")]
     print(f"  Images from Trading API: {imgs_found}/{len(live_items)}")
+    if imgs_empty:
+        print(f"  Items with no image: {imgs_empty}")
     for item in live_items:
         if item.get("img"):
             print(f"  Sample image URL: {item['img'][:100]}")
