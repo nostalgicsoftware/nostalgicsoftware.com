@@ -153,7 +153,7 @@ def fetch_ebay_descriptions(item_ids):
     Each description is fetched ONCE ever, then reused from cache.
     Batches of 5 with 2s delay to avoid rate limits.
     """
-    import urllib.parse
+    import urllib.parse, base64
 
     cache  = load_desc_cache()
     ids    = list(item_ids)
@@ -164,6 +164,23 @@ def fetch_ebay_descriptions(item_ids):
         return {iid: cache[iid] for iid in ids if iid in cache}
 
     print(f"  [desc] Fetching {len(needed)} new descriptions (cached: {len(ids)-len(needed)})")
+
+    # Get OAuth app token for Shopping API authentication
+    oauth_token = ""
+    try:
+        creds = base64.b64encode(f"{EBAY_APP_ID}:{EBAY_CERT_ID}".encode()).decode()
+        token_req = urllib.request.Request(
+            "https://api.ebay.com/identity/v1/oauth2/token",
+            data=b"grant_type=client_credentials&scope=https%3A%2F%2Fapi.ebay.com%2Foauth%2Fapi_scope",
+            headers={"Content-Type": "application/x-www-form-urlencoded",
+                     "Authorization": f"Basic {creds}"}
+        )
+        with urllib.request.urlopen(token_req, timeout=15) as r:
+            oauth_token = json.loads(r.read().decode()).get("access_token","")
+        print(f"  [desc] OAuth token obtained")
+    except Exception as e:
+        print(f"  [desc] OAuth token failed: {e} — descriptions skipped")
+        return {}
 
     for i in range(0, len(needed), 5):
         batch  = needed[i:i+5]
@@ -179,15 +196,13 @@ def fetch_ebay_descriptions(item_ids):
             f"&IncludeSelector=Description"
         )
         try:
-            req = urllib.request.Request(url, headers={"User-Agent": "NostalgicSoftware/1.0"})
+            req = urllib.request.Request(url, headers={
+                "User-Agent":          "NostalgicSoftware/1.0",
+                "X-EBAY-API-IAF-TOKEN": oauth_token,
+            })
             with urllib.request.urlopen(req, timeout=15) as r:
                 raw = r.read()
             data = json.loads(raw.decode())
-            # Log first batch response for diagnostics
-            if i == 0:
-                ack = data.get("Ack","")
-                errs = data.get("Errors","")
-                print(f"  [desc] Batch 1 Ack={ack} Errors={str(errs)[:200]}")
             items_data = data.get("Item") or []
             if not isinstance(items_data, list):
                 items_data = [items_data]
@@ -196,14 +211,12 @@ def fetch_ebay_descriptions(item_ids):
                 desc = itm.get("Description","") or ""
                 if iid and desc:
                     cache[iid] = desc
-                elif iid and not desc:
-                    print(f"  [desc] Item {iid} returned empty description")
         except urllib.error.HTTPError as e:
             body = e.read().decode("utf-8", errors="replace")
-            print(f"  [desc] Batch {i//5+1} HTTP {e.code}: {body[:300]}")
+            print(f"  [desc] Batch {i//5+1} HTTP {e.code}: {body[:200]}")
         except Exception as e:
             print(f"  [desc] Batch {i//5+1} failed: {e}")
-        time.sleep(2)
+        time.sleep(1)
 
     save_desc_cache(cache)
     result = {iid: cache[iid] for iid in ids if iid in cache}
@@ -505,7 +518,7 @@ function autoHeight(f){{
 <style>
 .item-layout{{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-bottom:40px;}}
 .item-img-wrap{{}}
-.item-img{{width:100%;border:1px solid var(--cyan-dim);box-shadow:0 0 30px var(--cyan-glow);display:block;mix-blend-mode:multiply;background:#fff;}}
+.item-img{{width:100%;border:1px solid var(--cyan-dim);box-shadow:0 0 30px var(--cyan-glow);display:block;}}
 .img-placeholder{{width:100%;aspect-ratio:1;background:#111;display:flex;align-items:center;justify-content:center;font-family:'VT323',monospace;font-size:16px;color:#333;border:1px solid var(--border);}}
 .item-meta{{display:flex;flex-direction:column;gap:16px;}}
 .item-cat{{font-size:10px;color:var(--cyan-dim);letter-spacing:3px;text-transform:uppercase;}}
