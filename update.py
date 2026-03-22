@@ -386,10 +386,16 @@ def fetch_items():
                 if pic_urls:
                     img = pic_urls[0].text or ""
                     if img:
+                        # Handle s-lNNN format (e.g. s-l225, s-l500)
                         img = re.sub(r"s-l\d+", "s-l1600", img)
+                        # Handle $_NN format (e.g. $_12, $_35) — replace with $_57 (1600px)
+                        img = re.sub(r"\$_\d+", "$_57", img)
 
             # Description — Trading API returns full HTML description with GranularityLevel=Fine
-            desc = txt("Description") or ""
+            desc_el = el.find("e:Description", namespaces=ns)
+            if desc_el is None:
+                desc_el = el.find("Description")
+            desc = (desc_el.text or "") if desc_el is not None else ""
 
             free_ship = bool(re.search(r"free\s*s/?h|free\s*ship", title, re.I))
 
@@ -804,7 +810,8 @@ def main():
     # Sample image URL for diagnostics
     for item in live_items:
         if item.get("img"):
-            print(f"  Sample image URL: {item['img'][:80]}")
+            print(f"  Sample image URL: {item['img'][:100]}")
+            print(f"  Sample desc chars: {len(item.get('ebay_desc',''))}")
             break
     print()
 
