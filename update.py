@@ -268,7 +268,7 @@ def fetch_items():
 
     while True:
         params = urllib.parse.urlencode({
-            "q":       "*",
+            "category_ids": "99",  # eBay category 99 = Everything / All Categories
             "filter":  f"sellers:{{{EBAY_STORE}}}",
             "limit":   PAGE_SIZE,
             "offset":  offset,
