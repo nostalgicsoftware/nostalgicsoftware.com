@@ -730,7 +730,7 @@ def build_tombstone_page(item_id, old_title, old_img, old_cat, suggestions):
 # ─────────────────────────────────────────────────────────────
 #  SITEMAP WRITER
 # ─────────────────────────────────────────────────────────────
-def write_sitemap(active_ids, tombstone_ids):
+def write_sitemap(active_ids, tombstone_ids, live_by_id=None):
     lines = ['<?xml version="1.0" encoding="UTF-8"?>',
              '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
              '',
@@ -876,7 +876,7 @@ def main():
     all_active    = (live_ids) | (existing_tombstone - sold_ids)
     all_tombstone = existing_tombstone | sold_ids
     # active = live_ids only; tombstone = all gone
-    write_sitemap(live_ids, existing_tombstone | sold_ids)
+    write_sitemap(live_ids, existing_tombstone | sold_ids, live_by_id)
 
     print(f"\n  ✓ Done. {wrote} pages written.\n")
 
