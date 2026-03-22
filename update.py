@@ -783,42 +783,26 @@ def main():
     new_ids  = live_ids - set(existing.keys())
     sold_ids = existing_active - live_ids
 
-    existing_on_disk = {k for k in live_ids
-                        if os.path.exists(filename(live_by_id[k].get("id",""),
-                                                    live_by_id[k].get("title","")))}
-    missing_ids = live_ids - set(existing.keys()) - new_ids
-
     print(f"  Live in feed:      {len(live_ids)}")
-    print(f"  Existing pages:    {len(existing)}")
     print(f"  New listings:      {len(new_ids)}")
-    print(f"  Already on disk:   {len(existing_on_disk)} (untouched)")
+    print(f"  Rebuilding:        {len(live_ids)}")
     print(f"  Sold/gone:         {len(sold_ids)}")
     print(f"  Already tombstone: {len(existing_tombstone)}\n")
 
-    # 4. Only write pages that need it:
-    #    - NEW items: create fresh page
-    #    - Existing items: leave completely alone (slug registry keeps URL stable)
-    #    - Sold items: handled in step 5
+    # 4. Rebuild all active pages every run
+    #    GitHub Actions always starts with a fresh checkout so pages must be regenerated.
+    #    Slugs are permanent via slugs.json — URLs never change even though pages rebuild.
     wrote = 0
     for item_id in live_ids:
         item     = live_by_id[item_id]
         new_path = filename(item_id, item.get("title", ""))
-
+        html     = build_active_page(item, live_items)
+        with open(new_path, "w", encoding="utf-8") as f:
+            f.write(html)
+        tag = "NEW" if item_id in new_ids else "BUILD"
         if item_id in new_ids:
-            # Brand new listing — create page
-            html = build_active_page(item, live_items)
-            with open(new_path, "w", encoding="utf-8") as f:
-                f.write(html)
             print(f"  [NEW] {new_path}")
-            wrote += 1
-        elif not os.path.exists(new_path):
-            # Page missing from disk (e.g. first run after slug migration) — create it
-            html = build_active_page(item, live_items)
-            with open(new_path, "w", encoding="utf-8") as f:
-                f.write(html)
-            print(f"  [MISSING→CREATE] {new_path}")
-            wrote += 1
-        # else: page exists, item still live — leave it alone
+        wrote += 1
 
     # 5. Convert sold items to tombstones — keep URL alive with suggestions
     for item_id in sold_ids:
