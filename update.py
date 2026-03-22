@@ -356,8 +356,7 @@ SHARED_CSS = """
 :root{--bg:#0a0a0a;--bg2:#0f0f0f;--cyan:#00c8ff;--cyan-dim:#0088bb;--cyan-glow:rgba(0,200,255,0.15);--green:#00ff41;--text:#a0d8e8;--text-dim:#507080;--border:#1a1a2a;}
 *{box-sizing:border-box;margin:0;padding:0;}
 html,body{min-height:100vh;background:var(--bg);color:var(--text);font-family:'Share Tech Mono',monospace;overflow-x:hidden;}
-body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.4) 2px,rgba(0,0,0,0.4) 4px);pointer-events:none;z-index:-1;opacity:0.18;}
-body::after{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,200,255,0.035) 1px,transparent 1px),linear-gradient(90deg,rgba(0,200,255,0.035) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:-1;}
+
 .wrap{position:relative;z-index:1;max-width:860px;margin:0 auto;padding:40px 20px 60px;}
 .topbar{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--cyan-dim);padding-bottom:12px;margin-bottom:40px;font-size:11px;letter-spacing:2px;}
 .topbar-l{color:var(--text-dim);text-transform:uppercase;}
