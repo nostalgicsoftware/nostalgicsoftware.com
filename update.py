@@ -74,6 +74,48 @@ CAT_MAP = [
     ("toys",         ["toy","happy meal","mcdonald","lego","plush","tsum","action figure","balance board","kids","baby","toddler","yoda"]),
 ]
 
+# ─────────────────────────────────────────────────────────────
+#  SLUG REGISTRY — permanent slugs, never change after first set
+#  Edit slugs.json in the repo to change a specific slug.
+# ─────────────────────────────────────────────────────────────
+SLUG_REGISTRY_PATH = "slugs.json"
+
+SLUG_STOP = {"a","an","the","and","or","for","of","in","on","at","to","with","by","from",
+             "new","free","s/h","w/","size","color","set","lot","pack","box","per",
+             "2019","2020","2021","2022","2023","2024","2025","2026"}
+
+def load_slug_registry():
+    if os.path.exists(SLUG_REGISTRY_PATH):
+        with open(SLUG_REGISTRY_PATH, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return {}
+
+def save_slug_registry(registry):
+    with open(SLUG_REGISTRY_PATH, "w", encoding="utf-8") as f:
+        json.dump(registry, f, indent=2, sort_keys=True)
+
+def auto_slug(item_id, title):
+    words = re.sub(r"[^a-z0-9\s]", " ", title.lower()).split()
+    words = [w for w in words if w not in SLUG_STOP and len(w) > 2]
+    return "-".join(words[:3]) + f"-{item_id}"
+
+SLUG_REGISTRY = load_slug_registry()
+
+def get_slug(item_id, title=""):
+    if item_id in SLUG_REGISTRY:
+        return SLUG_REGISTRY[item_id] + f"-{item_id}"
+    new_slug_base = auto_slug(item_id, title).replace(f"-{item_id}", "")
+    SLUG_REGISTRY[item_id] = new_slug_base
+    save_slug_registry(SLUG_REGISTRY)
+    print(f"  [registry] New slug registered: {new_slug_base}-{item_id}")
+    return f"{new_slug_base}-{item_id}"
+
+def slug(item_id, title=""):
+    return get_slug(item_id, title)
+
+def filename(item_id, title=""):
+    return os.path.join(OUTPUT_DIR, f"{get_slug(item_id, title)}.html")
+
 DESC_CACHE_PATH = "desc_cache.json"
 
 def load_desc_cache():
