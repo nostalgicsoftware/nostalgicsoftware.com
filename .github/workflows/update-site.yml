@@ -34,6 +34,14 @@ jobs:
         run: |
           python update.py
 
+      - name: Commit updated slug registry
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add slugs.json
+          git diff --staged --quiet || git commit -m "Update slug registry [skip ci]"
+          git push
+
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
         with:
