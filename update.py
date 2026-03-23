@@ -620,15 +620,78 @@ function autoHeight(f){{
 </html>"""
 
 
+def generate_seo_paragraph(title, category):
+    """
+    Generate a keyword-rich SEO paragraph for tombstone pages.
+    Uses the item title and category to create permanent anchor content.
+    """
+    title_lower = title.lower()
+
+    # Category-specific paragraph templates
+    if category == "disney":
+        return (f"{title} was a collectible Disney item available through NostalgicSoftware.com, "
+                f"your trusted source for Walt Disney World memorabilia, Disney pins, and theme park souvenirs. "
+                f"Disney collectibles from nostalgic-software span over two decades of eBay selling history, "
+                f"including rare pins, plush, apparel, and limited edition merchandise from Walt Disney World and Disneyland. "
+                f"Browse our active Disney listings for similar finds.")
+    elif category == "collectibles":
+        return (f"{title} was a rare collectible available through NostalgicSoftware.com. "
+                f"Our store specializes in vintage collectibles, advertising memorabilia, limited edition items, "
+                f"and hard-to-find pieces that span decades of popular culture. "
+                f"With over 2,300 items sold and 100% positive feedback since 2001, nostalgic-software is a trusted "
+                f"source for collectors seeking unique eBay finds. Browse our active collectibles listings.")
+    elif category == "electronics":
+        return (f"{title} was a vintage electronics or replacement parts item sold through NostalgicSoftware.com. "
+                f"Our store carries retro tech, OEM replacement parts, remote controls, cables, and consumer electronics "
+                f"accessories across dozens of major brands. "
+                f"Trusted since 2001 with fast shipping and 100% positive feedback. "
+                f"Browse our active electronics listings for similar parts and accessories.")
+    elif category == "sports":
+        return (f"{title} was a sports collectible or gaming item available through NostalgicSoftware.com. "
+                f"Our store features Tampa Bay Lightning memorabilia, Stanley Cup championship items, "
+                f"gaming accessories, and sports collectibles from the NFL, NHL, NBA and more. "
+                f"Trusted eBay seller since 2001 with 100% positive feedback. "
+                f"Browse our active sports and gaming listings.")
+    elif category == "home":
+        return (f"{title} was a home goods or kitchen item available through NostalgicSoftware.com. "
+                f"Our store carries Keurig replacement parts, Starbucks coffee, LED lighting, outdoor accessories, "
+                f"and a wide range of household items at competitive prices. "
+                f"Fast shipping, trusted since 2001. Browse our active home and kitchen listings.")
+    elif category == "clothing":
+        return (f"{title} was a clothing or apparel item available through NostalgicSoftware.com. "
+                f"Our store features jackets, shirts, loungewear, accessories, and wearable collectibles "
+                f"from a wide range of brands and styles. "
+                f"Trusted eBay seller since 2001, 100% positive feedback, ships fast. "
+                f"Browse our active clothing listings.")
+    elif category == "beauty":
+        return (f"{title} was a health and beauty item available through NostalgicSoftware.com. "
+                f"Our store carries personal care products, massage devices, hair care, nail kits, "
+                f"and wellness accessories at great prices. "
+                f"Trusted since 2001 with fast USPS shipping. Browse our active health and beauty listings.")
+    elif category == "toys":
+        return (f"{title} was a toys or kids item available through NostalgicSoftware.com. "
+                f"Our store features Disney toys, action figures, baby products, holiday decorations, "
+                f"and children's gifts sourced from top brands. "
+                f"Trusted eBay seller since 2001, 2,300+ items sold, 100% positive feedback. "
+                f"Browse our active toys and kids listings.")
+    else:
+        return (f"{title} was a unique find available through NostalgicSoftware.com, "
+                f"an eBay storefront with over 25 years of selling history and 100% positive feedback. "
+                f"Our eclectic inventory spans collectibles, electronics, home goods, clothing, and more — "
+                f"new items listed regularly. Browse our active listings for today's available finds.")
+
+
 def build_tombstone_page(item_id, old_title, old_img, old_cat, suggestions):
     """Generate a sold/unavailable tombstone page with suggestions."""
     extra_kw = CAT_EXTRA_KW.get(old_cat, "")
+    seo_paragraph = generate_seo_paragraph(old_title or "This item", old_cat)
     sugg_html = ""
     for s in suggestions[:4]:
         s_price = f"${s['price']:.2f}" if s["price"] > 0 else "See listing"
         s_img   = f'<img src="{escape(s["img"])}" alt="{escape(s["title"])}">' if s["img"] else "<div class='rp-img-ph'>[IMG]</div>"
+        s_slug  = s.get("slug", get_slug(s["id"], s.get("title","")))
         sugg_html += f"""
-        <a href="{slug(s['id'])}.html" class="rp-card">
+        <a href="{s_slug}.html" class="rp-card">
           <div class="rp-img">{s_img}</div>
           <div class="rp-body">
             <div class="rp-title">{escape(s['title'][:60])}{'...' if len(s['title'])>60 else ''}</div>
@@ -652,15 +715,22 @@ def build_tombstone_page(item_id, old_title, old_img, old_cat, suggestions):
 {SHARED_FONTS}
 {SHARED_CSS}
 <style>
-.missed-this-one{{text-align:center;padding:60px 20px 40px;}}
-.missed-icon{{font-size:48px;margin-bottom:16px;opacity:0.5;}}
-.missed-label{{font-family:'VT323',monospace;font-size:16px;color:var(--text-dim);letter-spacing:4px;text-transform:uppercase;margin-bottom:12px;}}
-.missed-title{{font-family:'Orbitron',sans-serif;font-size:clamp(14px,2vw,22px);font-weight:700;color:var(--text-dim);text-decoration:line-through;opacity:0.5;margin-bottom:24px;line-height:1.4;}}
-.missed-heading{{font-family:'Orbitron',sans-serif;font-size:clamp(18px,3vw,28px);font-weight:900;color:var(--cyan);text-shadow:0 0 20px rgba(0,200,255,0.4);margin-bottom:8px;}}
-.missed-sub{{font-size:13px;color:var(--text-dim);letter-spacing:1px;margin-bottom:40px;}}
-.browse-btn{{display:inline-block;font-family:'Orbitron',sans-serif;font-size:12px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#0a0a0a;background:var(--cyan);padding:14px 36px;text-decoration:none;clip-path:polygon(8px 0%,100% 0%,calc(100% - 8px) 100%,0% 100%);transition:all 0.2s;margin-bottom:50px;}}
+.sold-img-wrap{{position:relative;width:100%;max-width:480px;margin:0 auto 32px;}}
+.sold-img{{width:100%;display:block;filter:grayscale(80%) opacity(0.5);border:1px solid var(--border);}}
+.sold-stamp{{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-25deg);font-family:'Orbitron',sans-serif;font-size:clamp(32px,8vw,72px);font-weight:900;color:#ff2222;border:6px solid #ff2222;padding:8px 20px;opacity:0.85;letter-spacing:6px;text-transform:uppercase;white-space:nowrap;pointer-events:none;text-shadow:0 0 20px rgba(255,34,34,0.4);}}
+.sold-layout{{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-bottom:40px;align-items:start;}}
+.sold-meta{{display:flex;flex-direction:column;gap:16px;}}
+.sold-cat{{font-size:10px;color:var(--text-dim);letter-spacing:3px;text-transform:uppercase;}}
+.sold-title{{font-family:'Orbitron',sans-serif;font-size:clamp(13px,2vw,18px);font-weight:700;color:var(--text-dim);line-height:1.4;text-decoration:line-through;opacity:0.6;}}
+.sold-badge{{display:inline-block;background:rgba(255,34,34,0.1);color:#ff4444;border:1px solid rgba(255,34,34,0.4);font-family:'Orbitron',sans-serif;font-size:11px;font-weight:700;letter-spacing:3px;padding:6px 16px;text-transform:uppercase;}}
+.sold-heading{{font-family:'Orbitron',sans-serif;font-size:clamp(16px,2.5vw,22px);font-weight:900;color:var(--cyan);text-shadow:0 0 20px rgba(0,200,255,0.4);}}
+.sold-sub{{font-size:12px;color:var(--text-dim);line-height:1.7;}}
+.seo-section{{background:var(--bg2);border:1px solid var(--border);padding:20px 24px;margin:32px 0;}}
+.seo-label{{font-family:'Orbitron',sans-serif;font-size:10px;font-weight:700;color:var(--cyan-dim);letter-spacing:3px;text-transform:uppercase;margin-bottom:10px;}}
+.seo-text{{font-size:12px;color:var(--text-dim);line-height:1.8;}}
+.browse-btn{{display:inline-block;font-family:'Orbitron',sans-serif;font-size:12px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#0a0a0a;background:var(--cyan);padding:14px 36px;text-decoration:none;clip-path:polygon(8px 0%,100% 0%,calc(100% - 8px) 100%,0% 100%);transition:all 0.2s;}}
 .browse-btn:hover{{background:#40d8ff;box-shadow:0 0 30px rgba(0,200,255,0.6);transform:translateY(-2px);}}
-.sugg-title{{font-family:'Orbitron',sans-serif;font-size:11px;font-weight:700;color:var(--cyan);letter-spacing:3px;text-transform:uppercase;margin-bottom:14px;text-align:left;}}
+.sugg-title{{font-family:'Orbitron',sans-serif;font-size:11px;font-weight:700;color:var(--cyan);letter-spacing:3px;text-transform:uppercase;margin-bottom:14px;}}
 .related-grid{{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;}}
 .rp-card{{background:var(--bg2);border:1px solid var(--border);text-decoration:none;color:inherit;transition:border-color 0.2s;display:block;}}
 .rp-card:hover{{border-color:var(--cyan-dim);}}
@@ -670,7 +740,7 @@ def build_tombstone_page(item_id, old_title, old_img, old_cat, suggestions):
 .rp-body{{padding:8px;}}
 .rp-title{{font-size:10px;color:var(--text);line-height:1.4;margin-bottom:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}}
 .rp-price{{font-family:'Orbitron',sans-serif;font-size:11px;font-weight:700;color:var(--cyan);}}
-@media(max-width:600px){{.related-grid{{grid-template-columns:repeat(2,1fr);}}}}
+@media(max-width:600px){{.sold-layout{{grid-template-columns:1fr;}}.related-grid{{grid-template-columns:repeat(2,1fr);}}}}
 </style>
 </head>
 <body>
@@ -687,13 +757,30 @@ def build_tombstone_page(item_id, old_title, old_img, old_cat, suggestions):
 
   <div class="divider"></div>
 
-  <div class="missed-this-one" id="missed-this-one">
-    <div class="missed-icon">📦</div>
-    <div class="missed-label">// item status: sold or unavailable</div>
-    <div class="missed-title">{old_title_esc}</div>
-    <div class="missed-heading">Looks like you missed this one.</div>
-    <div class="missed-sub">This item has sold or is no longer available — but there's more where that came from.</div>
-    <a href="../index.html" class="browse-btn">Browse All Listings →</a>
+  <div class="divider"></div>
+
+  <div class="sold-layout">
+    <div>
+      <div class="sold-img-wrap">
+        {'<img src="' + escape(old_img) + '" alt="' + old_title_esc + '" class="sold-img">' if old_img else '<div class="sold-img" style="aspect-ratio:1;background:#111;"></div>'}
+        <div class="sold-stamp">SOLD</div>
+      </div>
+    </div>
+    <div class="sold-meta">
+      <div class="sold-cat">// {escape(old_cat)}</div>
+      <div class="sold-title">{old_title_esc}</div>
+      <div class="sold-badge">✓ SOLD</div>
+      <div class="sold-heading">Looks like you missed this one.</div>
+      <div class="sold-sub">This item has sold and is no longer available. Check out similar items below or browse our full store — new finds listed regularly.</div>
+      <a href="../index.html" class="browse-btn">Browse All Listings →</a>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="seo-section">
+    <div class="seo-label">// About This Item</div>
+    <div class="seo-text">{seo_paragraph}</div>
   </div>
 
   <div class="divider"></div>
@@ -879,7 +966,40 @@ def main():
                     "img":   item["img"],
                     "slug":  item.get("slug", get_slug(item["id"], item["title"])),
                     "url":   item["ebay_url"],
+                    "sold":  False,
                 })
+
+            # Add tombstone items to CATALOG with sold=True
+            for tomb_id in (existing_tombstone | sold_ids):
+                tomb_fname = existing.get(tomb_id, ("tombstone",""))[1] if tomb_id in existing else ""
+                tomb_slug  = tomb_fname.replace(".html","") if tomb_fname else get_slug(tomb_id)
+                # Try to get title/img from existing tombstone page
+                tomb_path  = os.path.join(OUTPUT_DIR, tomb_fname) if tomb_fname else ""
+                tomb_title, tomb_img, tomb_cat = "", "", "other"
+                if tomb_path and os.path.exists(tomb_path):
+                    try:
+                        pg = open(tomb_path, encoding="utf-8").read()
+                        import re as _re
+                        m = _re.search(r'<div class="sold-title">([^<]+)</div>', pg)
+                        if m: tomb_title = m.group(1)
+                        m2 = _re.search(r'class="sold-img"[^>]*src="([^"]+)"', pg)
+                        if not m2: m2 = _re.search(r'src="([^"]+)"[^>]*class="sold-img"', pg)
+                        if m2: tomb_img = m2.group(1)
+                        m3 = _re.search(r'<div class="sold-cat">// ([^<]+)</div>', pg)
+                        if m3: tomb_cat = m3.group(1).strip()
+                    except: pass
+                if tomb_title or tomb_slug:
+                    catalog.append({
+                        "id":    tomb_id,
+                        "title": tomb_title or tomb_slug,
+                        "price": 0,
+                        "free":  False,
+                        "cat":   tomb_cat,
+                        "img":   tomb_img,
+                        "slug":  tomb_slug,
+                        "url":   f"https://www.ebay.com/itm/{tomb_id}",
+                        "sold":  True,
+                    })
 
             new_catalog_str = "const CATALOG = " + json.dumps(catalog, ensure_ascii=False) + ";"
             # Replace existing CATALOG definition
