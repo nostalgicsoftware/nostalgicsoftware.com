@@ -54,7 +54,7 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy . --project-name=nostalgicsoftware
+          command: pages deploy . --project-name=nostalgicsoftware --commit-dirty=true
 
       - name: Summary
         run: |
