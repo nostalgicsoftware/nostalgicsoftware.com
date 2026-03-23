@@ -36,7 +36,7 @@ from html import escape
 #  CONFIG  — edit these
 # ─────────────────────────────────────────────────────────────
 EBAY_STORE    = "nostalgic-software"    # your eBay seller ID
-SITE_BASE     = "https://www.nostalgicsoftware.com"
+SITE_BASE     = "https://nostalgicsoftware.com"
 GA_ID         = "G-BPE3G9Q26B"
 OUTPUT_DIR    = "items"          # relative to where you run the script
 SITEMAP_PATH  = "sitemap.xml"
