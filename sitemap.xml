@@ -164,13 +164,6 @@
   </url>
 
   <url>
-    <loc>https://nostalgicsoftware.com/items/harry-potter-dvd-screener-226274217296.html</loc>
-    <lastmod>2026-03-23</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.8</priority>
-  </url>
-
-  <url>
     <loc>https://nostalgicsoftware.com/items/halloween-raglan-kids-shirt-226327974453.html</loc>
     <lastmod>2026-03-23</lastmod>
     <changefreq>daily</changefreq>
@@ -602,6 +595,13 @@
     <lastmod>2026-03-23</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://nostalgicsoftware.com/items/harry-potter-dvd-screener-226274217296.html</loc>
+    <lastmod>2026-03-23</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.3</priority>
   </url>
 
 </urlset>
