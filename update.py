@@ -859,10 +859,41 @@ def main():
         print(f"  [SOLD→TOMBSTONE] {tomb_path}  (\"{old_title[:50]}\")")
         wrote += 1
     # 6. Sitemap
-    all_active    = (live_ids) | (existing_tombstone - sold_ids)
-    all_tombstone = existing_tombstone | sold_ids
-    # active = live_ids only; tombstone = all gone
     write_sitemap(live_ids, existing_tombstone | sold_ids, live_by_id)
+
+    # 7. Update index.html CATALOG with real Trading API image URLs
+    if os.path.exists("index.html"):
+        try:
+            with open("index.html", "r", encoding="utf-8") as f:
+                idx_html = f.read()
+
+            # Build updated CATALOG JSON
+            catalog = []
+            for item in live_items:
+                catalog.append({
+                    "id":    item["id"],
+                    "title": item["title"],
+                    "price": item["price"],
+                    "free":  item["free_ship"],
+                    "cat":   item["category"],
+                    "img":   item["img"],
+                    "slug":  item.get("slug", get_slug(item["id"], item["title"])),
+                    "url":   item["ebay_url"],
+                })
+
+            new_catalog_str = "const CATALOG = " + json.dumps(catalog) + ";"
+            # Replace existing CATALOG definition
+            idx_html = re.sub(
+                r"const CATALOG = \[.*?\];",
+                new_catalog_str,
+                idx_html,
+                flags=re.DOTALL
+            )
+            with open("index.html", "w", encoding="utf-8") as f:
+                f.write(idx_html)
+            print(f"  index.html CATALOG updated with {len(catalog)} live items and real image URLs")
+        except Exception as e:
+            print(f"  WARNING: Could not update index.html CATALOG: {e}")
 
     print(f"\n  ✓ Done. {wrote} pages written.\n")
 
