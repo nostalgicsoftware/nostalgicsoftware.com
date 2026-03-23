@@ -34,13 +34,17 @@ jobs:
         run: |
           python update.py
 
-      - name: Commit updated registries
+      - name: Commit generated pages
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add slugs.json desc_cache.json
-          git diff --staged --quiet || git commit -m "Update slug registry and description cache [skip ci]"
+          git add items/ sitemap.xml slugs.json desc_cache.json
+          git diff --staged --quiet || git commit -m "Rebuild site pages [skip ci]"
           git push
+
+      - name: Commit updated registries
+        run: |
+          echo "Registries committed in previous step"
 
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
