@@ -1,1 +1,5 @@
+# www → non-www (301 permanent)
 https://www.nostalgicsoftware.com/* https://nostalgicsoftware.com/:splat 301
+
+# Extensionless item URLs → .html (301 permanent)
+/items/:slug https://nostalgicsoftware.com/items/:slug.html 301
