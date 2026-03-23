@@ -881,14 +881,13 @@ def main():
                     "url":   item["ebay_url"],
                 })
 
-            new_catalog_str = "const CATALOG = " + json.dumps(catalog) + ";"
+            new_catalog_str = "const CATALOG = " + json.dumps(catalog, ensure_ascii=False) + ";"
             # Replace existing CATALOG definition
-            idx_html = re.sub(
-                r"const CATALOG = \[.*?\];",
-                new_catalog_str,
-                idx_html,
-                flags=re.DOTALL
-            )
+            # Find and replace the CATALOG block
+            cat_start = idx_html.find("const CATALOG = [")
+            cat_end   = idx_html.find("];", cat_start) + 2
+            if cat_start >= 0 and cat_end > cat_start:
+                idx_html = idx_html[:cat_start] + new_catalog_str + idx_html[cat_end:]
             with open("index.html", "w", encoding="utf-8") as f:
                 f.write(idx_html)
             print(f"  index.html CATALOG updated with {len(catalog)} live items and real image URLs")
