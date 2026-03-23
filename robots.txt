@@ -1,3 +1,47 @@
+# nostalgicsoftware.com — robots.txt
+
+# ── Welcome all major search engines ──
+User-agent: Googlebot
+Allow: /
+Allow: /items/
+
+User-agent: Googlebot-Image
+Allow: /
+Allow: /items/
+
+User-agent: Bingbot
+Allow: /
+Allow: /items/
+
+User-agent: Slurp
+Allow: /
+Allow: /items/
+
+User-agent: DuckDuckBot
+Allow: /
+Allow: /items/
+
+User-agent: Baiduspider
+Allow: /
+Allow: /items/
+
+User-agent: YandexBot
+Allow: /
+Allow: /items/
+
+User-agent: facebot
+Allow: /
+Allow: /items/
+
+User-agent: Twitterbot
+Allow: /
+Allow: /items/
+
+User-agent: LinkedInBot
+Allow: /
+Allow: /items/
+
+# ── Default for all other crawlers ──
 User-agent: *
 Allow: /
 Allow: /items/
@@ -8,4 +52,5 @@ Disallow: /test/
 Disallow: /backup/
 Disallow: /private/
 
-Sitemap: https://www.nostalgicsoftware.com/sitemap.xml
+# ── Sitemap location ──
+Sitemap: https://nostalgicsoftware.com/sitemap.xml
