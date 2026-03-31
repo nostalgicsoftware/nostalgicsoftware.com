@@ -41,7 +41,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add items/ sitemap.xml slugs.json desc_cache.json index.html _redirects robots.txt
+          git add items/ sitemap.xml slugs.json desc_cache.json index.html _redirects robots.txt sold.html sold_archive.json
           git diff --staged --quiet || git commit -m "Rebuild site pages [skip ci]"
           git push
 
