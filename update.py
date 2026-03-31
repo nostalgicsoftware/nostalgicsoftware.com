@@ -621,85 +621,110 @@ function autoHeight(f){{
 
 
 def generate_seo_paragraph(title, category):
-    """
-    Generate a keyword-rich SEO paragraph for tombstone pages.
-    Uses the item title and category to create permanent anchor content.
-    """
-    title_lower = title.lower()
+    """Generate multi-paragraph SEO content for tombstone pages. Returns HTML <p> tags."""
+    t = title.strip()
 
-    # Category-specific paragraph templates
     if category == "disney":
-        return (f"{title} was a collectible Disney item available through NostalgicSoftware.com, "
-                f"your trusted source for Walt Disney World memorabilia, Disney pins, and theme park souvenirs. "
-                f"Disney collectibles from nostalgic-software span over two decades of eBay selling history, "
-                f"including rare pins, plush, apparel, and limited edition merchandise from Walt Disney World and Disneyland. "
-                f"Browse our active Disney listings for similar finds.")
+        return (f"<p><strong>{escape(t)}</strong> was a Disney collectible available through NostalgicSoftware.com. "
+                f"Walt Disney World memorabilia, Disney pins, plush, apparel, and limited edition theme park merchandise "
+                f"have been staples of our eBay store since 2001. Disney collectibles consistently rank among the most "
+                f"sought-after items on eBay, with pins, ornaments, and exclusive resort merchandise attracting collectors worldwide.</p>"
+                f"<p>NostalgicSoftware.com specializes in hard-to-find Disney items sourced from Walt Disney World, "
+                f"Disneyland, and authorized retailers. Our store has maintained 100% positive feedback across 2,300+ "
+                f"transactions — browse our active Disney listings for similar finds.</p>")
+
     elif category == "collectibles":
-        return (f"{title} was a rare collectible available through NostalgicSoftware.com. "
-                f"Our store specializes in vintage collectibles, advertising memorabilia, limited edition items, "
-                f"and hard-to-find pieces that span decades of popular culture. "
-                f"With over 2,300 items sold and 100% positive feedback since 2001, nostalgic-software is a trusted "
-                f"source for collectors seeking unique eBay finds. Browse our active collectibles listings.")
+        return (f"<p><strong>{escape(t)}</strong> was a rare collectible sold through NostalgicSoftware.com. "
+                f"Collectibles from our store span vintage advertising memorabilia, limited edition promotional items, "
+                f"rare DVDs and media, vintage glass bottles, and hard-to-find pieces from across popular culture history.</p>"
+                f"<p>For Your Consideration screeners, vintage advertising pieces, and promotional collectibles are "
+                f"increasingly rare as original print runs are finite and attrition reduces available supply each year. "
+                f"NostalgicSoftware.com has been a trusted source for collectors on eBay since 2001 — "
+                f"100% positive feedback, ships fast. Browse our active collectibles listings for today's available finds.</p>")
+
     elif category == "electronics":
-        return (f"{title} was a vintage electronics or replacement parts item sold through NostalgicSoftware.com. "
-                f"Our store carries retro tech, OEM replacement parts, remote controls, cables, and consumer electronics "
-                f"accessories across dozens of major brands. "
-                f"Trusted since 2001 with fast shipping and 100% positive feedback. "
-                f"Browse our active electronics listings for similar parts and accessories.")
+        return (f"<p><strong>{escape(t)}</strong> was a vintage electronics or replacement parts item available through NostalgicSoftware.com. "
+                f"Our store carries OEM replacement parts, remote controls, power supplies, cables, adapters, and consumer "
+                f"electronics accessories spanning dozens of major brands including Sony, Samsung, Keurig, Razor, and more.</p>"
+                f"<p>Finding original manufacturer replacement parts for older electronics can be challenging as supply "
+                f"chains discontinue components. NostalgicSoftware.com sources genuine OEM parts and accessories to help "
+                f"extend the life of your devices. Trusted eBay seller since 2001, 100% positive feedback, ships fast. "
+                f"Browse our active electronics listings.</p>")
+
     elif category == "sports":
-        return (f"{title} was a sports collectible or gaming item available through NostalgicSoftware.com. "
-                f"Our store features Tampa Bay Lightning memorabilia, Stanley Cup championship items, "
-                f"gaming accessories, and sports collectibles from the NFL, NHL, NBA and more. "
-                f"Trusted eBay seller since 2001 with 100% positive feedback. "
-                f"Browse our active sports and gaming listings.")
+        return (f"<p><strong>{escape(t)}</strong> was a sports collectible or gaming item sold through NostalgicSoftware.com. "
+                f"Our store features Tampa Bay Lightning memorabilia including Stanley Cup championship items from the "
+                f"2020 and 2021 back-to-back championship seasons, gaming accessories, and sports collectibles.</p>"
+                f"<p>Championship memorabilia from the Lightning's historic consecutive Stanley Cup wins represents "
+                f"a unique moment in NHL history. Limited edition Bud Light bottles, magnets, and licensed merchandise "
+                f"from those seasons are increasingly collectible. Browse our active sports listings for similar finds.</p>")
+
     elif category == "home":
-        return (f"{title} was a home goods or kitchen item available through NostalgicSoftware.com. "
-                f"Our store carries Keurig replacement parts, Starbucks coffee, LED lighting, outdoor accessories, "
-                f"and a wide range of household items at competitive prices. "
-                f"Fast shipping, trusted since 2001. Browse our active home and kitchen listings.")
+        return (f"<p><strong>{escape(t)}</strong> was a home goods or kitchen item available through NostalgicSoftware.com. "
+                f"Our store carries Keurig replacement parts, Starbucks whole bean coffee, LED lighting, outdoor accessories, "
+                f"kitchen tools, and a wide range of household items at competitive prices.</p>"
+                f"<p>Genuine OEM replacement parts for popular appliances like the Keurig K-Duo are frequently difficult "
+                f"to source through retail channels. NostalgicSoftware.com specializes in sourcing these hard-to-find "
+                f"components. Trusted since 2001, ships fast via USPS. Browse our active home listings.</p>")
+
     elif category == "clothing":
-        return (f"{title} was a clothing or apparel item available through NostalgicSoftware.com. "
-                f"Our store features jackets, shirts, loungewear, accessories, and wearable collectibles "
-                f"from a wide range of brands and styles. "
-                f"Trusted eBay seller since 2001, 100% positive feedback, ships fast. "
-                f"Browse our active clothing listings.")
+        return (f"<p><strong>{escape(t)}</strong> was a clothing or apparel item sold through NostalgicSoftware.com. "
+                f"Our store features jackets, shirts, loungewear, Disney apparel, wearable collectibles, "
+                f"and seasonal clothing from a wide range of brands and styles.</p>"
+                f"<p>From genuine lambskin leather jackets to Disney character merchandise and holiday apparel, "
+                f"NostalgicSoftware.com offers eclectic clothing finds at great prices. "
+                f"Trusted eBay seller since 2001, 100% positive feedback. Browse our active clothing listings.</p>")
+
     elif category == "beauty":
-        return (f"{title} was a health and beauty item available through NostalgicSoftware.com. "
-                f"Our store carries personal care products, massage devices, hair care, nail kits, "
-                f"and wellness accessories at great prices. "
-                f"Trusted since 2001 with fast USPS shipping. Browse our active health and beauty listings.")
+        return (f"<p><strong>{escape(t)}</strong> was a health and beauty item available through NostalgicSoftware.com. "
+                f"Our store carries personal care devices, hair care products, nail kits, massage therapy tools, "
+                f"orthopedic supports, and wellness accessories at great prices.</p>"
+                f"<p>From CPAP cushion replacements to pulse therapy massagers and plantar fasciitis supports, "
+                f"NostalgicSoftware.com sources health and wellness items that are often hard to find at retail. "
+                f"Trusted since 2001, ships fast via USPS First Class. Browse our active health and beauty listings.</p>")
+
     elif category == "toys":
-        return (f"{title} was a toys or kids item available through NostalgicSoftware.com. "
-                f"Our store features Disney toys, action figures, baby products, holiday decorations, "
-                f"and children's gifts sourced from top brands. "
-                f"Trusted eBay seller since 2001, 2,300+ items sold, 100% positive feedback. "
-                f"Browse our active toys and kids listings.")
+        return (f"<p><strong>{escape(t)}</strong> was a toys or kids item sold through NostalgicSoftware.com. "
+                f"Our store features Disney toys, McDonald's Happy Meal collectibles, baby and toddler products, "
+                f"holiday decorations, outdoor play equipment, and children's gifts from top brands.</p>"
+                f"<p>From kids sprinkler splash mats to Disney tsum tsum ornaments and limited edition holiday items, "
+                f"NostalgicSoftware.com offers a constantly rotating selection of toys and children's items. "
+                f"Trusted eBay seller since 2001, 2,300+ items sold, 100% positive feedback. Browse our active listings.</p>")
+
     else:
-        return (f"{title} was a unique find available through NostalgicSoftware.com, "
-                f"an eBay storefront with over 25 years of selling history and 100% positive feedback. "
-                f"Our eclectic inventory spans collectibles, electronics, home goods, clothing, and more — "
-                f"new items listed regularly. Browse our active listings for today's available finds.")
+        return (f"<p><strong>{escape(t)}</strong> was a unique find available through NostalgicSoftware.com — "
+                f"an eBay storefront with over 25 years of selling history and 100% positive feedback across 2,300+ transactions. "
+                f"Our inventory spans collectibles, vintage electronics, home goods, clothing, Disney merchandise, "
+                f"sports memorabilia, and more.</p>"
+                f"<p>New items are listed regularly from estate finds, closeouts, and unique sourcing. "
+                f"NostalgicSoftware.com has been a trusted name on eBay since November 2001. "
+                f"Browse our active listings for today's available finds — something new arrives every week.</p>")
 
 
 def build_tombstone_page(item_id, old_title, old_img, old_cat, suggestions):
-    """Generate a sold/unavailable tombstone page with suggestions."""
-    extra_kw = CAT_EXTRA_KW.get(old_cat, "")
-    seo_paragraph = generate_seo_paragraph(old_title or "This item", old_cat)
+    """Generate a sold item tombstone page — permanent SEO content."""
+    extra_kw   = CAT_EXTRA_KW.get(old_cat, "")
+    seo_paras  = generate_seo_paragraph(old_title or "This item", old_cat)
+    item_slug  = get_slug(item_id)
+    title_esc  = escape(old_title) if old_title else "This Item"
+    # Keywords: title + category extras
+    kw = f"{title_esc}, sold eBay item, {escape(extra_kw)}, NostalgicSoftware, nostalgic-software collectibles"
+
     sugg_html = ""
     for s in suggestions[:4]:
-        s_price = f"${s['price']:.2f}" if s["price"] > 0 else "See listing"
-        s_img   = f'<img src="{escape(s["img"])}" alt="{escape(s["title"])}">' if s["img"] else "<div class='rp-img-ph'>[IMG]</div>"
+        s_price = f"${s['price']:.2f}" if s.get("price",0) > 0 else "See listing"
+        s_img   = f'<img src="{escape(s["img"])}" alt="{escape(s["title"][:40])}" loading="lazy">' if s.get("img") else "<div class='rp-img-ph'>[IMG]</div>"
         s_slug  = s.get("slug", get_slug(s["id"], s.get("title","")))
-        sugg_html += f"""
-        <a href="{s_slug}.html" class="rp-card">
+        sugg_html += f"""<a href="{s_slug}.html" class="rp-card">
           <div class="rp-img">{s_img}</div>
           <div class="rp-body">
-            <div class="rp-title">{escape(s['title'][:60])}{'...' if len(s['title'])>60 else ''}</div>
+            <div class="rp-title">{escape(s["title"][:60])}{'...' if len(s["title"])>60 else ''}</div>
             <div class="rp-price">{s_price}</div>
           </div>
         </a>"""
 
-    old_title_esc = escape(old_title) if old_title else "This Item"
+    img_html = (f'<img src="{escape(old_img)}" alt="{title_esc}" class="sold-img" loading="eager">' 
+                if old_img else '<div class="sold-img" style="aspect-ratio:1;background:#111;min-height:200px;"></div>')
 
     return f"""<!DOCTYPE html>
 <html lang="en">
@@ -707,29 +732,40 @@ def build_tombstone_page(item_id, old_title, old_img, old_cat, suggestions):
 {GA_SNIPPET}
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>{old_title_esc} — Sold | NostalgicSoftware.com</title>
-<meta name="description" content="{old_title_esc} has sold or is no longer available at NostalgicSoftware.com. Browse similar items from our active eBay store.">
-<meta name="keywords" content="{old_title_esc}, sold eBay item, {escape(extra_kw)}, NostalgicSoftware, similar items eBay">
+<title>{title_esc} — Sold | NostalgicSoftware.com</title>
+<meta name="description" content="{title_esc} — this item has sold at NostalgicSoftware.com. Browse similar collectibles and unique finds from our trusted eBay store, selling since 2001 with 100% positive feedback.">
+<meta name="keywords" content="{kw}">
 <meta name="robots" content="index, follow">
-<link rel="canonical" href="{SITE_BASE}/items/{slug(item_id)}.html">
+<meta name="revisit-after" content="30 days">
+<meta property="og:title" content="{title_esc} — Sold | NostalgicSoftware.com">
+<meta property="og:description" content="{title_esc} has sold. Browse similar items at NostalgicSoftware.com — trusted eBay seller since 2001.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="{SITE_BASE}/items/{item_slug}.html">
+<link rel="canonical" href="{SITE_BASE}/items/{item_slug}.html">
 {SHARED_FONTS}
 {SHARED_CSS}
 <style>
-.sold-img-wrap{{position:relative;width:100%;max-width:480px;margin:0 auto 32px;}}
-.sold-img{{width:100%;display:block;filter:grayscale(80%) opacity(0.5);border:1px solid var(--border);}}
-.sold-stamp{{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-25deg);font-family:'Orbitron',sans-serif;font-size:clamp(32px,8vw,72px);font-weight:900;color:#ff2222;border:6px solid #ff2222;padding:8px 20px;opacity:0.85;letter-spacing:6px;text-transform:uppercase;white-space:nowrap;pointer-events:none;text-shadow:0 0 20px rgba(255,34,34,0.4);}}
 .sold-layout{{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-bottom:40px;align-items:start;}}
-.sold-meta{{display:flex;flex-direction:column;gap:16px;}}
+.sold-img-wrap{{position:relative;width:100%;}}
+.sold-img{{width:100%;display:block;border:1px solid var(--border);filter:grayscale(85%) opacity(0.45);}}
+.sold-stamp{{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-28deg);font-family:'Orbitron',sans-serif;font-size:clamp(28px,6vw,64px);font-weight:900;color:#ff2222;border:5px solid #ff2222;padding:6px 18px;opacity:0.9;letter-spacing:6px;text-transform:uppercase;white-space:nowrap;pointer-events:none;text-shadow:0 0 20px rgba(255,34,34,0.5);}}
+.sold-meta{{display:flex;flex-direction:column;gap:14px;}}
 .sold-cat{{font-size:10px;color:var(--text-dim);letter-spacing:3px;text-transform:uppercase;}}
-.sold-title{{font-family:'Orbitron',sans-serif;font-size:clamp(13px,2vw,18px);font-weight:700;color:var(--text-dim);line-height:1.4;text-decoration:line-through;opacity:0.6;}}
-.sold-badge{{display:inline-block;background:rgba(255,34,34,0.1);color:#ff4444;border:1px solid rgba(255,34,34,0.4);font-family:'Orbitron',sans-serif;font-size:11px;font-weight:700;letter-spacing:3px;padding:6px 16px;text-transform:uppercase;}}
-.sold-heading{{font-family:'Orbitron',sans-serif;font-size:clamp(16px,2.5vw,22px);font-weight:900;color:var(--cyan);text-shadow:0 0 20px rgba(0,200,255,0.4);}}
-.sold-sub{{font-size:12px;color:var(--text-dim);line-height:1.7;}}
-.seo-section{{background:var(--bg2);border:1px solid var(--border);padding:20px 24px;margin:32px 0;}}
-.seo-label{{font-family:'Orbitron',sans-serif;font-size:10px;font-weight:700;color:var(--cyan-dim);letter-spacing:3px;text-transform:uppercase;margin-bottom:10px;}}
-.seo-text{{font-size:12px;color:var(--text-dim);line-height:1.8;}}
+.sold-status{{display:inline-block;background:rgba(255,34,34,0.1);color:#ff4444;border:1px solid rgba(255,34,34,0.4);font-family:'Orbitron',sans-serif;font-size:11px;font-weight:700;letter-spacing:3px;padding:5px 14px;text-transform:uppercase;width:fit-content;}}
+.sold-title{{font-family:'Orbitron',sans-serif;font-size:clamp(13px,2vw,17px);font-weight:700;color:var(--text-dim);line-height:1.5;opacity:0.75;}}
+.sold-detail{{font-size:12px;color:var(--text-dim);line-height:1.7;}}
+.sold-detail strong{{color:var(--text);}}
+.ebay-link{{display:inline-block;font-family:'Orbitron',sans-serif;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--cyan-dim);border:1px solid var(--cyan-dim);padding:10px 20px;text-decoration:none;transition:all 0.2s;width:fit-content;}}
+.ebay-link:hover{{color:var(--cyan);border-color:var(--cyan);box-shadow:0 0 16px rgba(0,200,255,0.15);}}
 .browse-btn{{display:inline-block;font-family:'Orbitron',sans-serif;font-size:12px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#0a0a0a;background:var(--cyan);padding:14px 36px;text-decoration:none;clip-path:polygon(8px 0%,100% 0%,calc(100% - 8px) 100%,0% 100%);transition:all 0.2s;}}
 .browse-btn:hover{{background:#40d8ff;box-shadow:0 0 30px rgba(0,200,255,0.6);transform:translateY(-2px);}}
+.trust-bar{{display:flex;gap:20px;flex-wrap:wrap;padding:10px 14px;border:1px solid var(--border);background:var(--bg2);font-size:11px;color:var(--text-dim);}}
+.trust-bar span{{color:var(--green);}}
+.seo-section{{background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--cyan-dim);padding:24px 28px;margin:32px 0;}}
+.seo-label{{font-family:'Orbitron',sans-serif;font-size:10px;font-weight:700;color:var(--cyan-dim);letter-spacing:3px;text-transform:uppercase;margin-bottom:14px;}}
+.seo-text{{font-size:13px;color:var(--text-dim);line-height:1.9;}}
+.seo-text p{{margin-bottom:12px;}}
+.seo-text p:last-child{{margin-bottom:0;}}
 .sugg-title{{font-family:'Orbitron',sans-serif;font-size:11px;font-weight:700;color:var(--cyan);letter-spacing:3px;text-transform:uppercase;margin-bottom:14px;}}
 .related-grid{{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;}}
 .rp-card{{background:var(--bg2);border:1px solid var(--border);text-decoration:none;color:inherit;transition:border-color 0.2s;display:block;}}
@@ -749,30 +785,33 @@ def build_tombstone_page(item_id, old_title, old_img, old_cat, suggestions):
   <div class="topbar">
     <div class="topbar-l">// nostalgicsoftware.com</div>
     <div class="topbar-r">
-      <a href="../index.html">← Back to Store</a>
-      &nbsp;&nbsp;
-      <a href="https://www.ebay.com/usr/nostalgic-software" target="_blank" rel="noopener">eBay Store ↗</a>
+      <a href="../index.html">&#8592; Store</a>
+      <a href="https://www.ebay.com/usr/nostalgic-software" target="_blank" rel="noopener">eBay &#8599;</a>
     </div>
   </div>
-
-  <div class="divider"></div>
 
   <div class="divider"></div>
 
   <div class="sold-layout">
     <div>
       <div class="sold-img-wrap">
-        {'<img src="' + escape(old_img) + '" alt="' + old_title_esc + '" class="sold-img">' if old_img else '<div class="sold-img" style="aspect-ratio:1;background:#111;"></div>'}
+        {img_html}
         <div class="sold-stamp">SOLD</div>
       </div>
     </div>
     <div class="sold-meta">
       <div class="sold-cat">// {escape(old_cat)}</div>
-      <div class="sold-title">{old_title_esc}</div>
-      <div class="sold-badge">✓ SOLD</div>
-      <div class="sold-heading">Looks like you missed this one.</div>
-      <div class="sold-sub">This item has sold and is no longer available. Check out similar items below or browse our full store — new finds listed regularly.</div>
-      <a href="../index.html" class="browse-btn">Browse All Listings →</a>
+      <div class="sold-status">&#10003; SOLD</div>
+      <div class="sold-title">{title_esc}</div>
+      <div class="sold-detail"><strong>Seller:</strong> nostalgic-software &nbsp;|&nbsp; <strong>Platform:</strong> eBay</div>
+      <div class="sold-detail">Trusted since 2001 — 100% positive feedback, 2,300+ items sold.</div>
+      <a href="https://www.ebay.com/itm/{item_id}" target="_blank" rel="noopener" class="ebay-link">View on eBay &#8599;</a>
+      <a href="../index.html" class="browse-btn">Browse Active Listings &#8594;</a>
+      <div class="trust-bar">
+        <div><span>&#10003;</span> 100% Positive</div>
+        <div><span>&#10003;</span> Since 2001</div>
+        <div><span>&#10003;</span> 2,300+ Sold</div>
+      </div>
     </div>
   </div>
 
@@ -780,24 +819,146 @@ def build_tombstone_page(item_id, old_title, old_img, old_cat, suggestions):
 
   <div class="seo-section">
     <div class="seo-label">// About This Item</div>
-    <div class="seo-text">{seo_paragraph}</div>
+    <div class="seo-text">{seo_paras}</div>
   </div>
 
   <div class="divider"></div>
 
-  <div class="sugg-title">// You Might Still Like These</div>
+  <div class="sugg-title">// You Might Also Like</div>
   <div class="related-grid">
     {sugg_html}
   </div>
 
   <footer>
-    <div>© 2026 NostalgicSoftware.com</div>
-    <div><a href="../index.html">← All Listings</a> &nbsp;|&nbsp; <a href="https://www.ebay.com/usr/nostalgic-software" target="_blank" rel="noopener">eBay Store</a></div>
+    <div>&#169; 2026 NostalgicSoftware.com</div>
+    <div><a href="../index.html">&#8592; All Listings</a> &nbsp;|&nbsp; <a href="https://www.ebay.com/usr/nostalgic-software" target="_blank" rel="noopener">eBay Store</a> &nbsp;|&nbsp; <a href="../sold.html">Sold Archive</a></div>
   </footer>
 
 </div>
 </body>
 </html>"""
+
+
+# ─────────────────────────────────────────────────────────────
+#  SOLD ARCHIVE WRITER
+# ─────────────────────────────────────────────────────────────
+SOLD_ARCHIVE_PATH = "sold_archive.json"
+
+def load_sold_archive():
+    if os.path.exists(SOLD_ARCHIVE_PATH):
+        with open(SOLD_ARCHIVE_PATH, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return {}
+
+def save_sold_archive(archive):
+    with open(SOLD_ARCHIVE_PATH, "w", encoding="utf-8") as f:
+        json.dump(archive, f, indent=2, sort_keys=True)
+
+def update_sold_archive(sold_ids, live_by_id_snapshot):
+    """Add newly sold items to the archive with sold date."""
+    archive = load_sold_archive()
+    for iid in sold_ids:
+        if iid not in archive:
+            info = live_by_id_snapshot.get(iid, {})
+            archive[iid] = {
+                "id":       iid,
+                "title":    info.get("title", ""),
+                "img":      info.get("img", ""),
+                "cat":      info.get("category", "other"),
+                "price":    info.get("price", 0),
+                "slug":     info.get("slug", get_slug(iid)),
+                "sold_date": TODAY,
+            }
+            print(f"  [archive] Added to sold archive: {info.get('title','')[:50]}")
+    save_sold_archive(archive)
+    return archive
+
+def write_sold_page(archive):
+    """Generate sold.html — permanent archive of all sold items."""
+    if not archive:
+        return
+
+    items = sorted(archive.values(), key=lambda x: x.get("sold_date",""), reverse=True)
+
+    rows = ""
+    for item in items:
+        price_str = f"${item['price']:.2f}" if item.get("price",0) > 0 else "Sold"
+        img_html  = f'<img src="{escape(item["img"])}" alt="{escape(item["title"][:40])}" loading="lazy">' if item.get("img") else ""
+        rows += f"""
+    <a href="items/{escape(item['slug'])}.html" class="sold-row">
+      <div class="sold-row-img">{img_html}</div>
+      <div class="sold-row-info">
+        <div class="sold-row-title">{escape(item['title'])}</div>
+        <div class="sold-row-meta">
+          <span class="sold-tag">SOLD</span>
+          <span class="sold-row-cat">{escape(item['cat'])}</span>
+          <span class="sold-row-date">{item.get('sold_date','')}</span>
+          <span class="sold-row-price">{price_str}</span>
+        </div>
+      </div>
+    </a>"""
+
+    html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+{GA_SNIPPET}
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sold Items Archive — NostalgicSoftware.com</title>
+<meta name="description" content="Browse the complete sold items archive at NostalgicSoftware.com — {len(items)} items sold since 2001. Collectibles, electronics, Disney merchandise, sports memorabilia and more.">
+<meta name="keywords" content="sold eBay items, NostalgicSoftware sold archive, eBay collectibles sold, nostalgic-software eBay history, sold collectibles eBay">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="{SITE_BASE}/sold.html">
+{SHARED_FONTS}
+{SHARED_CSS}
+<style>
+.archive-header{{margin-bottom:32px;}}
+.archive-title{{font-family:'Orbitron',sans-serif;font-size:clamp(18px,3vw,28px);font-weight:900;color:var(--cyan);margin-bottom:8px;}}
+.archive-sub{{font-size:13px;color:var(--text-dim);}}
+.sold-row{{display:grid;grid-template-columns:80px 1fr;gap:16px;align-items:center;padding:14px 0;border-bottom:1px solid var(--border);text-decoration:none;color:inherit;transition:background 0.15s;}}
+.sold-row:hover{{background:rgba(0,200,255,0.03);}}
+.sold-row-img{{width:80px;height:80px;overflow:hidden;background:#111;flex-shrink:0;}}
+.sold-row-img img{{width:100%;height:100%;object-fit:cover;filter:grayscale(60%) opacity(0.7);}}
+.sold-row-title{{font-size:13px;color:var(--text);margin-bottom:6px;line-height:1.4;}}
+.sold-row-meta{{display:flex;gap:12px;flex-wrap:wrap;align-items:center;font-size:11px;}}
+.sold-tag{{background:rgba(255,34,34,0.1);color:#ff4444;border:1px solid rgba(255,34,34,0.3);font-family:'Orbitron',sans-serif;font-size:9px;font-weight:700;letter-spacing:2px;padding:2px 7px;}}
+.sold-row-cat{{color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;}}
+.sold-row-date{{color:var(--text-dim);}}
+.sold-row-price{{font-family:'Orbitron',sans-serif;color:var(--cyan-dim);font-weight:700;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <div class="topbar-l">// nostalgicsoftware.com</div>
+    <div class="topbar-r">
+      <a href="index.html">&#8592; Store</a>
+      <a href="https://www.ebay.com/usr/nostalgic-software" target="_blank" rel="noopener">eBay &#8599;</a>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="archive-header">
+    <div class="archive-title">// Sold Items Archive</div>
+    <div class="archive-sub">{len(items)} items sold through NostalgicSoftware.com — each page preserved permanently with full item details and SEO content. Updated automatically as new items sell.</div>
+  </div>
+
+  <div class="sold-list">
+    {rows}
+  </div>
+
+  <footer>
+    <div>&#169; 2026 NostalgicSoftware.com</div>
+    <div><a href="index.html">&#8592; Active Listings</a> &nbsp;|&nbsp; <a href="https://www.ebay.com/usr/nostalgic-software" target="_blank" rel="noopener">eBay Store</a></div>
+  </footer>
+</div>
+</body>
+</html>"""
+
+    with open("sold.html", "w", encoding="utf-8") as f:
+        f.write(html)
+    print(f"  Wrote sold.html ({len(items)} sold items)")
 
 
 # ─────────────────────────────────────────────────────────────
@@ -839,6 +1000,14 @@ def write_sitemap(active_ids, tombstone_ids, live_by_id=None):
         ]
 
     lines.append('</urlset>')
+
+    # Add sold archive page to sitemap
+    lines += ['', '  <url>',
+              f'    <loc>{SITE_BASE}/sold.html</loc>',
+              f'    <lastmod>{TODAY}</lastmod>',
+              '    <changefreq>weekly</changefreq>',
+              '    <priority>0.6</priority>',
+              '  </url>', '']
 
     with open(SITEMAP_PATH, "w", encoding="utf-8") as f:
         f.write("\n".join(lines))
@@ -912,7 +1081,12 @@ def main():
             print(f"  [NEW] {new_path}")
         wrote += 1
 
-    # 5. Convert sold items to tombstones — keep URL alive with suggestions
+    # 5. Update sold archive and convert to tombstones
+    if sold_ids:
+        update_sold_archive(sold_ids, live_by_id)
+    write_sold_page(load_sold_archive())
+
+    # 5b. Convert sold items to tombstones — keep URL alive with suggestions
     for item_id in sold_ids:
         old_title = ""
         old_img   = ""
