@@ -644,64 +644,111 @@ function autoHeight(f){{
 
 
 def generate_seo_paragraph(title, category):
-    """
-    Generate a keyword-rich SEO paragraph for tombstone pages.
-    Uses the item title and category to create permanent anchor content.
-    """
-    title_lower = title.lower()
+    """Generate 2 unique paragraphs of SEO content for tombstone pages. Returns HTML."""
+    t = escape(title.strip())
 
-    # Category-specific paragraph templates
     if category == "disney":
-        return (f"{title} was a collectible Disney item available through NostalgicSoftware.com, "
-                f"your trusted source for Walt Disney World memorabilia, Disney pins, and theme park souvenirs. "
-                f"Disney collectibles from nostalgic-software span over two decades of eBay selling history, "
-                f"including rare pins, plush, apparel, and limited edition merchandise from Walt Disney World and Disneyland. "
-                f"Browse our active Disney listings for similar finds.")
+        return (f"<p><strong>{t}</strong> was a Disney collectible sold through NostalgicSoftware.com. "
+                f"Walt Disney World resort merchandise, Disney pins, plush, and limited edition theme park items "
+                f"are among the most actively collected categories on eBay. Pins alone have a dedicated global "
+                f"collector community with thousands of trading and purchasing transactions daily. "
+                f"Items sourced directly from Walt Disney World resorts and parks carry particular value "
+                f"as they are exclusive to the parks and unavailable through standard retail channels.</p>"
+                f"<p>NostalgicSoftware.com has been a trusted Disney collectibles source on eBay since 2001 — "
+                f"over two decades of sourcing pins, plush, apparel, mugs, and limited edition merchandise "
+                f"from Walt Disney World and Disneyland. With 100% positive feedback across 2,300+ transactions, "
+                f"our store is a reliable destination for Disney collectors. "
+                f"Browse our active Disney listings for currently available pieces.</p>")
+
     elif category == "collectibles":
-        return (f"{title} was a rare collectible available through NostalgicSoftware.com. "
-                f"Our store specializes in vintage collectibles, advertising memorabilia, limited edition items, "
-                f"and hard-to-find pieces that span decades of popular culture. "
-                f"With over 2,300 items sold and 100% positive feedback since 2001, nostalgic-software is a trusted "
-                f"source for collectors seeking unique eBay finds. Browse our active collectibles listings.")
+        return (f"<p><strong>{t}</strong> was a rare collectible sold through NostalgicSoftware.com. "
+                f"For Your Consideration screeners, vintage promotional DVDs, and awards-season discs "
+                f"represent a unique category of Hollywood memorabilia. Studios distributed these exclusively "
+                f"to Academy members, guild voters, and industry professionals during awards voting seasons — "
+                f"they were never sold at retail and most were intended to be destroyed after the voting period. "
+                f"Surviving examples in sellable condition are increasingly rare and sought after by film collectors worldwide.</p>"
+                f"<p>NostalgicSoftware.com specializes in hard-to-find collectibles spanning vintage advertising, "
+                f"promotional media, limited edition items, and pop culture memorabilia. "
+                f"Trusted on eBay since 2001 with 100% positive feedback across 2,300+ completed sales. "
+                f"Browse our active collectibles listings — new rare finds listed regularly.</p>")
+
     elif category == "electronics":
-        return (f"{title} was a vintage electronics or replacement parts item sold through NostalgicSoftware.com. "
-                f"Our store carries retro tech, OEM replacement parts, remote controls, cables, and consumer electronics "
-                f"accessories across dozens of major brands. "
-                f"Trusted since 2001 with fast shipping and 100% positive feedback. "
-                f"Browse our active electronics listings for similar parts and accessories.")
+        return (f"<p><strong>{t}</strong> was a vintage electronics or OEM replacement parts item "
+                f"sold through NostalgicSoftware.com. Sourcing original manufacturer parts for discontinued "
+                f"consumer electronics can be challenging as retail supply chains age out components years before "
+                f"the devices themselves become obsolete. eBay remains the primary marketplace where genuine OEM "
+                f"remote controls, power supplies, cables, and accessories continue to circulate after retail availability ends.</p>"
+                f"<p>NostalgicSoftware.com has been sourcing and selling genuine electronics parts and accessories "
+                f"on eBay since 2001 — covering Sony, Samsung, Keurig, Razor, Nintendo, and dozens of other brands. "
+                f"100% positive feedback, ships fast via USPS. "
+                f"Browse our active electronics listings for currently available parts and accessories.</p>")
+
     elif category == "sports":
-        return (f"{title} was a sports collectible or gaming item available through NostalgicSoftware.com. "
-                f"Our store features Tampa Bay Lightning memorabilia, Stanley Cup championship items, "
-                f"gaming accessories, and sports collectibles from the NFL, NHL, NBA and more. "
-                f"Trusted eBay seller since 2001 with 100% positive feedback. "
-                f"Browse our active sports and gaming listings.")
+        return (f"<p><strong>{t}</strong> was a sports collectible sold through NostalgicSoftware.com. "
+                f"The Tampa Bay Lightning's back-to-back Stanley Cup championships in 2020 and 2021 produced "
+                f"a wave of limited edition licensed merchandise that has grown in collectible value as the "
+                f"championships recede in time. Championship-era Bud Light bottles, magnets, and licensed items "
+                f"from both Cup runs represent a unique dual-championship moment in NHL history that may not repeat for decades.</p>"
+                f"<p>NostalgicSoftware.com specializes in Tampa Bay Lightning memorabilia alongside gaming accessories, "
+                f"Nintendo, PlayStation, and Xbox items, and sports collectibles across major leagues. "
+                f"Trusted eBay seller since 2001, 100% positive feedback, 2,300+ items sold. "
+                f"Browse our active sports listings for currently available items.</p>")
+
     elif category == "home":
-        return (f"{title} was a home goods or kitchen item available through NostalgicSoftware.com. "
-                f"Our store carries Keurig replacement parts, Starbucks coffee, LED lighting, outdoor accessories, "
-                f"and a wide range of household items at competitive prices. "
-                f"Fast shipping, trusted since 2001. Browse our active home and kitchen listings.")
+        return (f"<p><strong>{t}</strong> was a home goods item sold through NostalgicSoftware.com. "
+                f"Genuine OEM replacement parts for popular home appliances — particularly Keurig coffee makers — "
+                f"are frequently discontinued by manufacturers before the appliances themselves wear out, "
+                f"leaving owners searching eBay and specialty retailers for original components. "
+                f"Finding the correct part from a trusted seller with verifiable feedback is critical "
+                f"to ensuring compatibility and longevity.</p>"
+                f"<p>NostalgicSoftware.com carries Keurig K-Duo replacement parts, Starbucks whole bean coffee, "
+                f"LED lighting, outdoor accessories, and a rotating selection of household items at competitive prices. "
+                f"Trusted eBay seller since 2001, ships fast via USPS First Class. "
+                f"Browse our active home and kitchen listings.</p>")
+
     elif category == "clothing":
-        return (f"{title} was a clothing or apparel item available through NostalgicSoftware.com. "
-                f"Our store features jackets, shirts, loungewear, accessories, and wearable collectibles "
-                f"from a wide range of brands and styles. "
-                f"Trusted eBay seller since 2001, 100% positive feedback, ships fast. "
-                f"Browse our active clothing listings.")
+        return (f"<p><strong>{t}</strong> was a clothing item sold through NostalgicSoftware.com. "
+                f"Our apparel selection spans Disney character merchandise, seasonal and holiday clothing, "
+                f"genuine leather jackets, loungewear, and wearable collectibles across a wide range of "
+                f"sizes and styles. Vintage and branded apparel from established names retains value "
+                f"particularly when in new or excellent condition.</p>"
+                f"<p>NostalgicSoftware.com has offered clothing and apparel on eBay since 2001 — "
+                f"from lambskin leather jackets to Disney rain ponchos and Halloween seasonal pieces. "
+                f"100% positive feedback, fast USPS shipping. "
+                f"Browse our active clothing listings for currently available items.</p>")
+
     elif category == "beauty":
-        return (f"{title} was a health and beauty item available through NostalgicSoftware.com. "
-                f"Our store carries personal care products, massage devices, hair care, nail kits, "
-                f"and wellness accessories at great prices. "
-                f"Trusted since 2001 with fast USPS shipping. Browse our active health and beauty listings.")
+        return (f"<p><strong>{t}</strong> was a health and beauty item sold through NostalgicSoftware.com. "
+                f"Specialty health items — CPAP replacement cushions, plantar fasciitis supports, "
+                f"pulse therapy massagers, and professional nail systems — are frequently discontinued "
+                f"by manufacturers or become difficult to source through standard retail after initial "
+                f"product runs end. eBay fills this gap as a reliable secondary market for these items.</p>"
+                f"<p>NostalgicSoftware.com sources health, wellness, and beauty accessories across "
+                f"personal care, therapeutic devices, and cosmetic tools. "
+                f"Trusted since 2001 with 100% positive feedback, ships fast. "
+                f"Browse our active health and beauty listings for currently available items.</p>")
+
     elif category == "toys":
-        return (f"{title} was a toys or kids item available through NostalgicSoftware.com. "
-                f"Our store features Disney toys, action figures, baby products, holiday decorations, "
-                f"and children's gifts sourced from top brands. "
+        return (f"<p><strong>{t}</strong> was a toys and kids item sold through NostalgicSoftware.com. "
+                f"Children's collectibles — Disney Happy Meal toys, Tsum Tsum ornaments, limited edition "
+                f"holiday decorations, and themed kids products — often carry collector value well beyond "
+                f"their original retail price, particularly for items tied to specific Disney parks, "
+                f"film releases, or seasonal limited runs that are no longer manufactured.</p>"
+                f"<p>NostalgicSoftware.com carries Disney toys, McDonald's collectibles, baby and toddler "
+                f"products, outdoor play equipment, and holiday items for children. "
                 f"Trusted eBay seller since 2001, 2,300+ items sold, 100% positive feedback. "
-                f"Browse our active toys and kids listings.")
+                f"Browse our active toys and kids listings.</p>")
+
     else:
-        return (f"{title} was a unique find available through NostalgicSoftware.com, "
-                f"an eBay storefront with over 25 years of selling history and 100% positive feedback. "
-                f"Our eclectic inventory spans collectibles, electronics, home goods, clothing, and more — "
-                f"new items listed regularly. Browse our active listings for today's available finds.")
+        return (f"<p><strong>{t}</strong> was a unique item sold through NostalgicSoftware.com — "
+                f"an eBay storefront with over 25 years of selling history, 100% positive feedback, "
+                f"and more than 2,300 completed transactions. Our inventory spans collectibles, "
+                f"vintage electronics, home goods, clothing, Disney merchandise, sports memorabilia, "
+                f"health and beauty, and more — with new items listed on a regular basis.</p>"
+                f"<p>NostalgicSoftware.com has operated on eBay continuously since November 2001, "
+                f"making it one of the longer-running independent storefronts on the platform. "
+                f"We source from estate sales, closeouts, unique finds, and specialty channels. "
+                f"Browse our active listings — something worth finding arrives every week.</p>")
 
 
 def build_tombstone_page(item_id, old_title, old_img, old_cat, suggestions):
@@ -732,7 +779,7 @@ def build_tombstone_page(item_id, old_title, old_img, old_cat, suggestions):
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{old_title_esc} — Sold | NostalgicSoftware.com</title>
 <meta name="description" content="{old_title_esc} has sold or is no longer available at NostalgicSoftware.com. Browse similar items from our active eBay store.">
-<meta name="keywords" content="{old_title_esc}, sold eBay item, {escape(extra_kw)}, NostalgicSoftware, similar items eBay">
+<meta name="keywords" content="{escape(old_title)}, {escape(extra_kw)}, NostalgicSoftware.com, nostalgic-software eBay">
 <meta name="robots" content="index, follow">
 <link rel="canonical" href="{SITE_BASE}/items/{slug(item_id)}.html">
 {SHARED_FONTS}
@@ -744,7 +791,7 @@ def build_tombstone_page(item_id, old_title, old_img, old_cat, suggestions):
 .sold-layout{{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-bottom:40px;align-items:start;}}
 .sold-meta{{display:flex;flex-direction:column;gap:16px;}}
 .sold-cat{{font-size:10px;color:var(--text-dim);letter-spacing:3px;text-transform:uppercase;}}
-.sold-title{{font-family:'Orbitron',sans-serif;font-size:clamp(13px,2vw,18px);font-weight:700;color:var(--text-dim);line-height:1.4;text-decoration:line-through;opacity:0.6;}}
+.sold-title{{font-family:'Orbitron',sans-serif;font-size:clamp(13px,2vw,17px);font-weight:700;color:var(--text-dim);line-height:1.5;opacity:0.75;}}
 .sold-badge{{display:inline-block;background:rgba(255,34,34,0.1);color:#ff4444;border:1px solid rgba(255,34,34,0.4);font-family:'Orbitron',sans-serif;font-size:11px;font-weight:700;letter-spacing:3px;padding:6px 16px;text-transform:uppercase;}}
 .sold-heading{{font-family:'Orbitron',sans-serif;font-size:clamp(16px,2.5vw,22px);font-weight:900;color:var(--cyan);text-shadow:0 0 20px rgba(0,200,255,0.4);}}
 .sold-sub{{font-size:12px;color:var(--text-dim);line-height:1.7;}}
@@ -785,17 +832,23 @@ def build_tombstone_page(item_id, old_title, old_img, old_cat, suggestions):
   <div class="sold-layout">
     <div>
       <div class="sold-img-wrap">
-        {'<img src="' + escape(old_img) + '" alt="' + old_title_esc + '" class="sold-img">' if old_img else '<div class="sold-img" style="aspect-ratio:1;background:#111;"></div>'}
+        {img_html}
         <div class="sold-stamp">SOLD</div>
       </div>
     </div>
     <div class="sold-meta">
       <div class="sold-cat">// {escape(old_cat)}</div>
+      <div class="sold-status">&#10003; SOLD</div>
       <div class="sold-title">{old_title_esc}</div>
-      <div class="sold-badge">✓ SOLD</div>
-      <div class="sold-heading">Looks like you missed this one.</div>
-      <div class="sold-sub">This item has sold and is no longer available. Check out similar items below or browse our full store — new finds listed regularly.</div>
-      <a href="../index.html" class="browse-btn">Browse All Listings →</a>
+      <div class="sold-detail"><strong>Seller:</strong> nostalgic-software &nbsp;|&nbsp; <strong>Platform:</strong> eBay</div>
+      <div class="sold-detail">Trusted since 2001 — 100% positive feedback, 2,300+ items sold.</div>
+      <a href="https://www.ebay.com/itm/{item_id}" target="_blank" rel="noopener" class="ebay-link">View on eBay &#8599;</a>
+      <a href="../index.html" class="browse-btn">Browse Active Listings &#8594;</a>
+      <div class="trust-bar">
+        <div><span>&#10003;</span> 100% Positive</div>
+        <div><span>&#10003;</span> Since 2001</div>
+        <div><span>&#10003;</span> 2,300+ Sold</div>
+      </div>
     </div>
   </div>
 
@@ -952,6 +1005,44 @@ def main():
             old_title = cached.get("title", "")
             old_img   = cached.get("img", "")
             old_cat   = cached.get("category", "other")
+            # Upgrade image URL to full-res
+            if old_img:
+                old_img = re.sub(r"s-l\d+", "s-l1600", old_img)
+                old_img = re.sub(r"\$_\d+", "$_57", old_img)
+
+        # If no image from cache, try fetching from Trading API GetItem
+        if not old_img and EBAY_USER_TOKEN:
+            try:
+                ns = {"e": "urn:ebay:apis:eBLBaseComponents"}
+                xml_body = f"""<?xml version="1.0" encoding="utf-8"?>
+<GetItemRequest xmlns="urn:ebay:apis:eBLBaseComponents">
+  <RequesterCredentials><eBayAuthToken>{EBAY_USER_TOKEN}</eBayAuthToken></RequesterCredentials>
+  <ItemID>{item_id}</ItemID>
+  <DetailLevel>ItemReturnAttributes</DetailLevel>
+</GetItemRequest>"""
+                req = urllib.request.Request(
+                    "https://api.ebay.com/ws/api.dll",
+                    data=xml_body.encode("utf-8"),
+                    headers={
+                        "X-EBAY-API-SITEID":"0","X-EBAY-API-COMPATIBILITY-LEVEL":"1113",
+                        "X-EBAY-API-CALL-NAME":"GetItem","X-EBAY-API-APP-NAME":EBAY_APP_ID,
+                        "X-EBAY-API-CERT-NAME":EBAY_CERT_ID,"Content-Type":"text/xml;charset=utf-8",
+                    }
+                )
+                with urllib.request.urlopen(req, timeout=10) as r:
+                    root = ET.fromstring(r.read())
+                item_el = root.find("e:Item", namespaces=ns) or root.find("Item")
+                if item_el is not None:
+                    for child in item_el:
+                        if child.tag.split("}")[-1] == "PictureDetails":
+                            for pic in child:
+                                if pic.tag.split("}")[-1] == "PictureURL" and pic.text:
+                                    old_img = re.sub(r"s-l\d+","s-l1600",pic.text)
+                                    old_img = re.sub(r"\$_\d+","$_57",old_img)
+                                    break
+                            break
+            except Exception as e:
+                pass  # silent fail — image just won't show
 
         # Fall back to parsing existing page on disk if cache misses
         if not old_title and item_id in existing:
