@@ -770,6 +770,8 @@ def build_tombstone_page(item_id, old_title, old_img, old_cat, suggestions):
         </a>"""
 
     old_title_esc = escape(old_title) if old_title else "This Item"
+    img_html = (f'<img src="{escape(old_img)}" alt="{old_title_esc}" class="sold-img" loading="eager">'
+                if old_img else '<div class="sold-img" style="aspect-ratio:1;background:#111;min-height:200px;"></div>')
 
     return f"""<!DOCTYPE html>
 <html lang="en">
