@@ -952,9 +952,6 @@ def main():
             old_title = cached.get("title", "")
             old_img   = cached.get("img", "")
             old_cat   = cached.get("category", "other")
-            print(f"  [cache] Found {item_id}: {old_title[:40]}")
-        else:
-            print(f"  [cache] MISS for {item_id} — cache has {len(listings_cache)} entries")
 
         # Fall back to parsing existing page on disk if cache misses
         if not old_title and item_id in existing:
