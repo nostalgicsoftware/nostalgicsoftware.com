@@ -1,20 +1,20 @@
 {
   "226274217296": {
-    "id": "226274217296",
-    "title": "Harry Potter Chamber of Secrets DVD Screener For Your Consideration 2002",
-    "img": "https://i.ebayimg.com/00/s/MTYwMFgxMjAw/z/VWEAAOSwHOxhzq3e/$_57.JPG",
     "cat": "collectibles",
+    "id": "226274217296",
+    "img": "https://i.ebayimg.com/00/s/MTYwMFgxMjAw/z/VWEAAOSwHOxhzq3e/$_57.JPG",
     "price": 49.99,
     "slug": "harry-potter-dvd-screener-226274217296",
-    "sold_date": "2026-03-31"
+    "sold_date": "2026-03-31",
+    "title": "Harry Potter Chamber of Secrets DVD Screener For Your Consideration 2002"
   },
   "226370823619": {
-    "id": "226370823619",
-    "title": "Walt Disney World 50th Anniversary Refillable Resort Mug Mickey Minnie",
-    "img": "https://i.ebayimg.com/00/s/MTYwMFgxNjAw/z/wjkAAOSwAQthuYJ~/$_57.JPG",
     "cat": "disney",
+    "id": "226370823619",
+    "img": "https://i.ebayimg.com/00/s/MTYwMFgxNjAw/z/wjkAAOSwAQthuYJ~/$_57.JPG",
     "price": 12.95,
     "slug": "disney-world-50th-anniversary-mug-226370823619",
-    "sold_date": "2026-03-31"
+    "sold_date": "2026-03-31",
+    "title": "Walt Disney World 50th Anniversary Refillable Resort Mug Mickey Minnie"
   }
 }

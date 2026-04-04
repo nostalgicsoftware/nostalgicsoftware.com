@@ -619,3 +619,10 @@
   </url>
 
 </urlset>
+
+  <url>
+    <loc>https://nostalgicsoftware.com/sold.html</loc>
+    <lastmod>2026-04-04</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
