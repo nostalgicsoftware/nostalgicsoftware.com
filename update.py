@@ -879,6 +879,125 @@ def build_tombstone_page(item_id, old_title, old_img, old_cat, suggestions):
 
 
 # ─────────────────────────────────────────────────────────────
+#  SOLD ARCHIVE
+# ─────────────────────────────────────────────────────────────
+SOLD_ARCHIVE_PATH = "sold_archive.json"
+
+def load_sold_archive():
+    if os.path.exists(SOLD_ARCHIVE_PATH):
+        with open(SOLD_ARCHIVE_PATH, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return {}
+
+def save_sold_archive(archive):
+    with open(SOLD_ARCHIVE_PATH, "w", encoding="utf-8") as f:
+        json.dump(archive, f, indent=2, sort_keys=True)
+
+def update_sold_archive(sold_ids, listings_cache):
+    """Add newly sold items to archive. Never removes entries."""
+    archive = load_sold_archive()
+    for iid in sold_ids:
+        if iid not in archive:
+            cached = listings_cache.get(iid, {})
+            archive[iid] = {
+                "id":        iid,
+                "title":     cached.get("title", ""),
+                "img":       cached.get("img", ""),
+                "cat":       cached.get("category", "other"),
+                "price":     cached.get("price", 0),
+                "slug":      cached.get("slug", get_slug(iid)),
+                "sold_date": TODAY,
+            }
+            print(f"  [archive] Added: {cached.get('title','')[:50]}")
+    save_sold_archive(archive)
+    return archive
+
+def write_sold_page(archive):
+    """Generate sold.html — permanent archive of all sold items."""
+    if not archive:
+        return
+    items = sorted(archive.values(), key=lambda x: x.get("sold_date",""), reverse=True)
+    rows = ""
+    for item in items:
+        price_str = f"${item.get('price',0):.2f}" if item.get("price",0) > 0 else "Sold"
+        img_html  = f'<img src="{escape(item["img"])}" alt="{escape(item["title"][:40])}" loading="lazy">' if item.get("img") else ""
+        title_str = escape(item.get("title","")) or "Item"
+        cat_str   = escape(item.get("cat","other"))
+        date_str  = item.get("sold_date","")
+        slug_str  = escape(item.get("slug",""))
+        rows += f"""
+    <a href="items/{slug_str}.html" class="sold-row">
+      <div class="sold-row-img">{img_html}</div>
+      <div class="sold-row-info">
+        <div class="sold-row-title">{title_str}</div>
+        <div class="sold-row-meta">
+          <span class="sold-tag">SOLD</span>
+          <span class="sold-row-cat">{cat_str}</span>
+          <span class="sold-row-date">{date_str}</span>
+          <span class="sold-row-price">{price_str}</span>
+        </div>
+      </div>
+    </a>"""
+
+    html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+{GA_SNIPPET}
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sold Items Archive — NostalgicSoftware.com</title>
+<meta name="description" content="Browse {len(items)} sold items at NostalgicSoftware.com — collectibles, Disney merchandise, electronics, and more. Each page preserved permanently.">
+<meta name="keywords" content="sold eBay items, NostalgicSoftware sold archive, eBay collectibles, nostalgic-software eBay store">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="{SITE_BASE}/sold.html">
+{SHARED_FONTS}
+{SHARED_CSS}
+<style>
+.archive-header{{margin-bottom:32px;}}
+.archive-title{{font-family:'Orbitron',sans-serif;font-size:clamp(18px,3vw,28px);font-weight:900;color:var(--cyan);margin-bottom:8px;}}
+.archive-sub{{font-size:13px;color:var(--text-dim);line-height:1.7;}}
+.sold-row{{display:grid;grid-template-columns:80px 1fr;gap:16px;align-items:center;padding:14px 0;border-bottom:1px solid var(--border);text-decoration:none;color:inherit;transition:background 0.15s;}}
+.sold-row:hover{{background:rgba(0,200,255,0.03);}}
+.sold-row-img{{width:80px;height:80px;overflow:hidden;background:#111;flex-shrink:0;border:1px solid var(--border);}}
+.sold-row-img img{{width:100%;height:100%;object-fit:cover;filter:grayscale(60%) opacity(0.65);}}
+.sold-row-title{{font-size:13px;color:var(--text);margin-bottom:6px;line-height:1.4;}}
+.sold-row-meta{{display:flex;gap:12px;flex-wrap:wrap;align-items:center;font-size:11px;}}
+.sold-tag{{background:rgba(255,34,34,0.1);color:#ff4444;border:1px solid rgba(255,34,34,0.3);font-family:'Orbitron',sans-serif;font-size:9px;font-weight:700;letter-spacing:2px;padding:2px 7px;}}
+.sold-row-cat{{color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;}}
+.sold-row-date{{color:var(--text-dim);}}
+.sold-row-price{{font-family:'Orbitron',sans-serif;color:var(--cyan-dim);font-weight:700;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <div class="topbar-l">// nostalgicsoftware.com</div>
+    <div class="topbar-r">
+      <a href="index.html">&#8592; Store</a>
+      <a href="https://www.ebay.com/usr/nostalgic-software" target="_blank" rel="noopener">eBay &#8599;</a>
+    </div>
+  </div>
+  <div class="divider"></div>
+  <div class="archive-header">
+    <div class="archive-title">// Sold Items Archive</div>
+    <div class="archive-sub">{len(items)} items sold through NostalgicSoftware.com — each page preserved permanently with full item details and SEO content. Updated automatically as new items sell.</div>
+  </div>
+  <div class="sold-list">{rows}
+  </div>
+  <footer>
+    <div>&#169; 2026 NostalgicSoftware.com</div>
+    <div><a href="index.html">&#8592; Active Listings</a> &nbsp;|&nbsp; <a href="https://www.ebay.com/usr/nostalgic-software" target="_blank" rel="noopener">eBay Store</a></div>
+  </footer>
+</div>
+</body>
+</html>"""
+
+    with open("sold.html", "w", encoding="utf-8") as f:
+        f.write(html)
+    print(f"  Wrote sold.html ({len(items)} sold items)")
+
+
+# ─────────────────────────────────────────────────────────────
 #  SITEMAP WRITER
 # ─────────────────────────────────────────────────────────────
 def write_sitemap(active_ids, tombstone_ids, live_by_id=None):
@@ -918,6 +1037,13 @@ def write_sitemap(active_ids, tombstone_ids, live_by_id=None):
 
     lines.append('</urlset>')
 
+    # Add sold archive to sitemap
+    lines += ['', '  <url>',
+              f'    <loc>{SITE_BASE}/sold.html</loc>',
+              f'    <lastmod>{TODAY}</lastmod>',
+              '    <changefreq>weekly</changefreq>',
+              '    <priority>0.6</priority>',
+              '  </url>', '']
     with open(SITEMAP_PATH, "w", encoding="utf-8") as f:
         f.write("\n".join(lines))
     print(f"  Wrote {SITEMAP_PATH}  ({len(active_ids)} active + {len(tombstone_ids)} tombstone URLs)")
@@ -993,8 +1119,13 @@ def main():
             print(f"  [NEW] {new_path}")
         wrote += 1
 
-    # 5. Convert sold items to tombstones — keep URL alive with suggestions
+    # 5. Update sold archive + convert sold items to tombstones
     listings_cache = load_listings_cache()
+    if sold_ids:
+        update_sold_archive(sold_ids, listings_cache)
+    write_sold_page(load_sold_archive())
+
+    # 5b. Convert sold items to tombstones — keep URL alive with suggestions
     for item_id in sold_ids:
         old_title = ""
         old_img   = ""
