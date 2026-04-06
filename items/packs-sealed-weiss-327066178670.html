@@ -58,12 +58,12 @@ footer a:hover{color:var(--cyan);}
 .trust-bar{display:flex;gap:24px;padding:12px 16px;border:1px solid var(--border);background:var(--bg2);font-size:11px;color:var(--text-dim);}
 .trust-bar span{color:var(--green);}
 /* eBay description section */
-.ebay-desc-wrap{margin:32px 0;}
-.ebay-desc-label{font-family:'Orbitron',sans-serif;font-size:11px;font-weight:700;color:var(--cyan);letter-spacing:3px;text-transform:uppercase;margin-bottom:14px;}
-.ebay-desc-toggle{background:none;border:1px solid var(--cyan-dim);color:var(--cyan-dim);font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:2px;padding:8px 20px;cursor:pointer;text-transform:uppercase;transition:all 0.2s;}
-.ebay-desc-toggle:hover{border-color:var(--cyan);color:var(--cyan);}
-.ebay-desc-frame{width:100%;border:1px solid var(--border);background:#fff;margin-top:12px;display:none;}
-.ebay-desc-frame.open{display:block;}
+.item-desc-section{margin:32px 0;}
+.item-desc-label{font-family:'Orbitron',sans-serif;font-size:11px;font-weight:700;color:var(--cyan);letter-spacing:3px;text-transform:uppercase;margin-bottom:14px;}
+.item-desc-text{background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--cyan-dim);padding:20px 24px;font-size:13px;color:var(--text-dim);line-height:1.9;}
+.item-desc-text p{margin-bottom:12px;}
+.item-desc-text p:last-child{margin-bottom:0;}
+.item-desc-text strong{color:var(--text);}
 .related-title{font-family:'Orbitron',sans-serif;font-size:11px;font-weight:700;color:var(--cyan);letter-spacing:3px;text-transform:uppercase;margin-bottom:14px;}
 .related-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;}
 .rp-card{background:var(--bg2);border:1px solid var(--border);text-decoration:none;color:inherit;transition:border-color 0.2s;display:block;}
@@ -112,25 +112,13 @@ footer a:hover{color:var(--cyan);}
 
   <div class="divider"></div>
 
-  <div class="ebay-desc-wrap">
-  <div class="ebay-desc-label">// Item Description</div>
-  <button class="ebay-desc-toggle" onclick="toggleDesc(this)">▶ Expand Full Description</button>
-  <iframe id="descFrame" class="ebay-desc-frame" src="data:text/html;base64,PHA+T3BlbiBib3guIEZpdmUgc2VhbCBwYWNrcywgdGhyZWUgb3BlbmVkLiBDYXJkcyBpbmNsdWRlZCBzaG93biBpbiBwaG90b3M8L3A+"
-    scrolling="auto" frameborder="0" onload="autoHeight(this)"></iframe>
+  <div class="item-desc-section">
+  <div class="item-desc-label">// About This Item</div>
+  <div class="item-desc-text">
+    <p><strong>8 Packs - 5 Sealed Weiss Schwarz Gakuen iDOLM@STER Sealed in Japanese BUSHIROAD</strong> is a sports collectible or gaming accessory available through <strong>NostalgicSoftware.com</strong> — listed on eBay by nostalgic-software, a trusted seller since 2001 with 100% positive feedback and 2,300+ items sold. Ships fast via USPS.</p>
+    <p>Open box. Five seal packs, three opened. Cards included shown in photos</p>
+  </div>
 </div>
-<script>
-function toggleDesc(btn){
-  var f=document.getElementById('descFrame');
-  f.classList.toggle('open');
-  btn.textContent=f.classList.contains('open')?'▼ Collapse Description':'▶ Expand Full Description';
-}
-function autoHeight(f){
-  try{
-    var h=f.contentWindow.document.body.scrollHeight;
-    f.style.height=(h+40)+'px';
-  }catch(e){f.style.height='600px';}
-}
-</script>
 
   <div class="related-title">// You Might Also Like</div>
   <div class="related-grid">
