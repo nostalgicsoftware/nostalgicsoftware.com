@@ -481,6 +481,102 @@ footer a:hover{color:var(--cyan);}
 </style>
 """
 
+def clean_ebay_description(html_desc):
+    """
+    Strip eBay description HTML down to clean readable text for Google.
+    Removes: scripts, styles, iframes, Auctiva/3rd party widgets, inline CSS,
+    font tags, tables used for layout, excessive whitespace.
+    Returns plain text paragraphs suitable for direct page embedding.
+    """
+    if not html_desc:
+        return ""
+    import re as _re
+
+    text = html_desc
+
+    # Remove script, style, iframe, head blocks entirely
+    for tag in ["script","style","iframe","head","noscript"]:
+        text = _re.sub(rf"<{tag}[^>]*>.*?</{tag}>", " ", text, flags=_re.DOTALL|_re.IGNORECASE)
+
+    # Remove Auctiva and third-party widget divs
+    text = _re.sub(r"<[^>]*auctiva[^>]*>.*?</[^>]*>", " ", text, flags=_re.DOTALL|_re.IGNORECASE)
+    text = _re.sub(r"<!--.*?-->", " ", text, flags=_re.DOTALL)
+
+    # Strip all remaining HTML tags
+    text = _re.sub(r"<[^>]+>", " ", text)
+
+    # Decode common HTML entities
+    replacements = {
+        "&amp;":"&","&lt;":"<","&gt;":">","&nbsp;":" ",
+        "&quot;":'"',  "&#39;":"'","&mdash;":"—","&ndash;":"–",
+        "&copy;":"©","&reg;":"®","&trade;":"™",
+    }
+    for ent, char in replacements.items():
+        text = text.replace(ent, char)
+
+    # Collapse whitespace
+    text = _re.sub(r"[ \t]+", " ", text)
+    text = _re.sub(r"\n{3,}", "\n\n", text)
+
+    # Split into lines, strip, filter blanks and junk
+    lines = []
+    for line in text.split("\n"):
+        line = line.strip()
+        # Skip lines that are just numbers, single chars, URLs, or very short
+        if not line or len(line) < 8:
+            continue
+        if _re.match(r"^https?://", line):
+            continue
+        if _re.match(r"^[\d\s\|\-\.]+$", line):
+            continue
+        lines.append(line)
+
+    # Join into paragraphs — group consecutive lines
+    paragraphs = []
+    current = []
+    for line in lines:
+        if len(line) > 80:
+            if current:
+                paragraphs.append(" ".join(current))
+                current = []
+            paragraphs.append(line)
+        else:
+            current.append(line)
+    if current:
+        paragraphs.append(" ".join(current))
+
+    # Keep max 5 paragraphs, each max 300 chars
+    result = []
+    for p in paragraphs[:5]:
+        p = p.strip()
+        if len(p) > 300:
+            p = p[:297] + "..."
+        if len(p) > 20:
+            result.append(f"<p>{escape(p)}</p>")
+
+    return "\n".join(result)
+
+
+def generate_item_intro(title, category):
+    """Generate a unique intro sentence for each item page — visible to Google."""
+    cat_phrases = {
+        "disney":       "a Disney collectible",
+        "collectibles": "a rare collectible",
+        "electronics":  "a vintage electronics or replacement parts item",
+        "sports":       "a sports collectible or gaming accessory",
+        "home":         "a home goods or kitchen item",
+        "clothing":     "a clothing or apparel item",
+        "beauty":       "a health and beauty item",
+        "toys":         "a toys and kids item",
+        "other":        "a unique find",
+    }
+    phrase = cat_phrases.get(category, "a unique item")
+    return (f"<p><strong>{escape(title)}</strong> is {phrase} available through "
+            f"<strong>NostalgicSoftware.com</strong> — listed on eBay by nostalgic-software, "
+            f"a trusted seller since 2001 with 100% positive feedback and 2,300+ items sold. "
+            f"Ships fast via USPS.</p>")
+
+
 def build_active_page(item, all_items):
     """Generate a full active item page."""
     cat      = item["category"]
@@ -508,34 +604,26 @@ def build_active_page(item, all_items):
           </div>
         </a>"""
 
-    # eBay description section — expandable iframe
-    raw_desc = item.get("ebay_desc", "")
-    if raw_desc:
-        # Encode as data URI so it renders in an iframe without a separate file
-        import base64
-        desc_bytes = raw_desc.encode("utf-8")
-        desc_b64   = base64.b64encode(desc_bytes).decode("ascii")
-        ebay_desc_section = f"""<div class="ebay-desc-wrap">
-  <div class="ebay-desc-label">// Item Description</div>
-  <button class="ebay-desc-toggle" onclick="toggleDesc(this)">▶ Expand Full Description</button>
-  <iframe id="descFrame" class="ebay-desc-frame" src="data:text/html;base64,{desc_b64}"
-    scrolling="auto" frameborder="0" onload="autoHeight(this)"></iframe>
-</div>
-<script>
-function toggleDesc(btn){{
-  var f=document.getElementById('descFrame');
-  f.classList.toggle('open');
-  btn.textContent=f.classList.contains('open')?'▼ Collapse Description':'▶ Expand Full Description';
-}}
-function autoHeight(f){{
-  try{{
-    var h=f.contentWindow.document.body.scrollHeight;
-    f.style.height=(h+40)+'px';
-  }}catch(e){{f.style.height='600px';}}
-}}
-</script>"""
+    # Item description section — static, clean, Google-crawlable
+    raw_desc    = item.get("ebay_desc", "")
+    intro_html  = generate_item_intro(item["title"], cat)
+    cleaned     = clean_ebay_description(raw_desc)
+
+    if cleaned:
+        ebay_desc_section = f"""<div class="item-desc-section">
+  <div class="item-desc-label">// About This Item</div>
+  <div class="item-desc-text">
+    {intro_html}
+    {cleaned}
+  </div>
+</div>"""
     else:
-        ebay_desc_section = ""  # no description available
+        ebay_desc_section = f"""<div class="item-desc-section">
+  <div class="item-desc-label">// About This Item</div>
+  <div class="item-desc-text">
+    {intro_html}
+  </div>
+</div>"""
 
     return f"""<!DOCTYPE html>
 <html lang="en">
@@ -572,12 +660,12 @@ function autoHeight(f){{
 .trust-bar{{display:flex;gap:24px;padding:12px 16px;border:1px solid var(--border);background:var(--bg2);font-size:11px;color:var(--text-dim);}}
 .trust-bar span{{color:var(--green);}}
 /* eBay description section */
-.ebay-desc-wrap{{margin:32px 0;}}
-.ebay-desc-label{{font-family:'Orbitron',sans-serif;font-size:11px;font-weight:700;color:var(--cyan);letter-spacing:3px;text-transform:uppercase;margin-bottom:14px;}}
-.ebay-desc-toggle{{background:none;border:1px solid var(--cyan-dim);color:var(--cyan-dim);font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:2px;padding:8px 20px;cursor:pointer;text-transform:uppercase;transition:all 0.2s;}}
-.ebay-desc-toggle:hover{{border-color:var(--cyan);color:var(--cyan);}}
-.ebay-desc-frame{{width:100%;border:1px solid var(--border);background:#fff;margin-top:12px;display:none;}}
-.ebay-desc-frame.open{{display:block;}}
+.item-desc-section{{margin:32px 0;}}
+.item-desc-label{{font-family:'Orbitron',sans-serif;font-size:11px;font-weight:700;color:var(--cyan);letter-spacing:3px;text-transform:uppercase;margin-bottom:14px;}}
+.item-desc-text{{background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--cyan-dim);padding:20px 24px;font-size:13px;color:var(--text-dim);line-height:1.9;}}
+.item-desc-text p{{margin-bottom:12px;}}
+.item-desc-text p:last-child{{margin-bottom:0;}}
+.item-desc-text strong{{color:var(--text);}}
 .related-title{{font-family:'Orbitron',sans-serif;font-size:11px;font-weight:700;color:var(--cyan);letter-spacing:3px;text-transform:uppercase;margin-bottom:14px;}}
 .related-grid{{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;}}
 .rp-card{{background:var(--bg2);border:1px solid var(--border);text-decoration:none;color:inherit;transition:border-color 0.2s;display:block;}}
